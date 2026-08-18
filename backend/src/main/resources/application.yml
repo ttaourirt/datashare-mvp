@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: datashare-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/datashare
+    username: datashare
+    password: datashare
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Flyway pilote le schéma, JPA ne fait que valider
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  servlet:
+    multipart:
+      max-file-size: 1GB
+      max-request-size: 1GB
+
+server:
+  port: 8080
+  error:
+    include-message: always
+
+# --- Config custom ---
+datashare:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-please-use-a-32-plus-char-secret-key}
+    expiration-hours: 24
+  storage:
+    root: ${STORAGE_ROOT:./storage/uploads}
+  cors:
+    allowed-origins: http://localhost:4200
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
