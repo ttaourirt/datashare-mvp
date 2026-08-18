@@ -1,0 +1,42 @@
+# --- Node / Angular ---
+node_modules/
+dist/
+.angular/
+.vscode/
+*.tsbuildinfo
+coverage/
+cypress/videos/
+cypress/screenshots/
+
+# --- Java / Spring / Maven ---
+target/
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/*.jar
+!**/src/test/**/*.jar
+.mvn/wrapper/maven-wrapper.properties
+HELP.md
+
+# IDE
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Env / Secrets ---
+.env
+.env.local
+*.local
+
+# --- Uploads (JAMAIS committer les fichiers utilisateurs) ---
+storage/uploads/
+backend/storage/
+
+# --- Logs ---
+logs/
+*.log

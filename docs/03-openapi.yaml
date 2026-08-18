@@ -1,0 +1,302 @@
+openapi: 3.0.3
+info:
+  title: DataShare API
+  description: |
+    API REST pour le prototype DataShare — transfert sécurisé de fichiers.
+    Toutes les routes protégées attendent un header `Authorization: Bearer <JWT>`.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Dev local
+
+tags:
+  - name: Auth
+  - name: Files
+  - name: Tags
+  - name: Public
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: US03 — Créer un compte
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Compte créé + JWT
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '409': { description: Email déjà utilisé }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: US04 — Se connecter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: JWT généré
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { description: Identifiants invalides }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Récupérer l'utilisateur courant (validation du token)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
+        '401': { description: Token invalide ou expiré }
+
+  /files:
+    get:
+      tags: [Files]
+      summary: US05 — Historique des fichiers de l'utilisateur
+      parameters:
+        - in: query
+          name: includeExpired
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Liste des fichiers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/FileResponse' }
+    post:
+      tags: [Files]
+      summary: US01 — Uploader un fichier
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                expiresInDays:
+                  type: integer
+                  minimum: 1
+                  maximum: 7
+                  default: 7
+                password:
+                  type: string
+                  minLength: 6
+                tagIds:
+                  type: array
+                  items: { type: integer }
+      responses:
+        '201':
+          description: Fichier créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FileResponse' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '413': { description: Fichier trop volumineux (> 1 GB) }
+        '415': { description: Type de fichier interdit }
+
+  /files/{id}:
+    delete:
+      tags: [Files]
+      summary: US06 — Supprimer un fichier
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: Supprimé }
+        '403': { description: Pas propriétaire }
+        '404': { description: Introuvable }
+
+  /tags:
+    get:
+      tags: [Tags]
+      summary: Lister les tags de l'utilisateur
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TagResponse' }
+    post:
+      tags: [Tags]
+      summary: US08 — Créer un tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 30 }
+      responses:
+        '201':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TagResponse' }
+
+  # === Public (US02) ===
+  /public/files/{token}/meta:
+    get:
+      tags: [Public]
+      security: []
+      summary: US02 — Métadonnées avant téléchargement
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicFileMeta' }
+        '404': { description: Lien invalide }
+        '410': { description: Lien expiré }
+
+  /public/files/{token}/download:
+    post:
+      tags: [Public]
+      security: []
+      summary: US02 — Télécharger le fichier (POST car peut porter un mot de passe)
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password: { type: string }
+      responses:
+        '200':
+          description: Contenu binaire (streaming)
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '401': { description: Mot de passe requis ou invalide }
+        '404': { description: Lien invalide }
+        '410': { description: Lien expiré }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    ValidationError:
+      description: Erreur de validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        name: { type: string }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    AuthResponse:
+      type: object
+      properties:
+        token: { type: string, description: JWT }
+        user: { $ref: '#/components/schemas/UserResponse' }
+
+    UserResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string }
+        name: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    FileResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        publicToken: { type: string, format: uuid }
+        originalName: { type: string }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        uploadedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        passwordProtected: { type: boolean }
+        expired: { type: boolean }
+        downloadUrl: { type: string, example: "/f/8f4a...uuid" }
+        tags:
+          type: array
+          items: { $ref: '#/components/schemas/TagResponse' }
+
+    TagResponse:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
+    PublicFileMeta:
+      type: object
+      properties:
+        originalName: { type: string }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        expiresAt: { type: string, format: date-time }
+        passwordProtected: { type: boolean }
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer }
+        error: { type: string }
+        message: { type: string }
+        fieldErrors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
