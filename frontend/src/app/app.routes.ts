@@ -15,6 +15,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/files/history.component').then(m => m.HistoryComponent),
   },
+  {
+    path: 'send',
+    loadComponent: () => import('./features/public/anonymous-upload.component').then(m => m.AnonymousUploadComponent),
+  },
+  {
+    path: 'd/:token',
+    loadComponent: () => import('./features/public/download.component').then(m => m.DownloadComponent),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'files' },
   { path: '**', redirectTo: 'files' },
 ];

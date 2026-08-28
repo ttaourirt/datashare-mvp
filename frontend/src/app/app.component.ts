@@ -14,6 +14,7 @@ import { AuthService } from './core/auth/auth.service';
         <span>{{ auth.user()!.email }}</span>
         <button (click)="logout()">Déconnexion</button>
       } @else {
+        <a routerLink="/send">Envoi anonyme</a>
         <a routerLink="/login">Connexion</a>
         <a routerLink="/register">Créer un compte</a>
       }
