@@ -40,23 +40,24 @@ class AuthIntegrationTest {
     @Test
     void register_then_login_then_me() throws Exception {
         var reg = new RegisterRequest("integ@example.com", "password1234", "Integ");
-        String regBody = mvc.perform(post("/api/v1/auth/register")
+        // Register renvoie l'utilisateur créé — pas de token à l'inscription.
+        mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(reg)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token", notNullValue()))
-                .andExpect(jsonPath("$.user.email").value("integ@example.com"))
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(jsonPath("$.email").value("integ@example.com"))
+                .andExpect(jsonPath("$.token").doesNotExist());
 
-        String token = json.readTree(regBody).get("token").asText();
-
-        // Login
+        // Login — c'est ici que le token est généré
         var login = new LoginRequest("integ@example.com", "password1234");
-        mvc.perform(post("/api/v1/auth/login")
+        String loginBody = mvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(login)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", notNullValue()));
+                .andExpect(jsonPath("$.token", notNullValue()))
+                .andReturn().getResponse().getContentAsString();
+
+        String token = json.readTree(loginBody).get("token").asText();
 
         // /me sans token
         mvc.perform(get("/api/v1/auth/me"))

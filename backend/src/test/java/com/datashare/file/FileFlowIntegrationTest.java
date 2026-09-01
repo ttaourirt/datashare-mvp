@@ -137,11 +137,17 @@ class FileFlowIntegrationTest {
     }
 
     private String registerAndGetToken(String email) throws Exception {
-        var req = new RegisterRequest(email, "password1234", null);
-        String body = mvc.perform(post("/api/v1/auth/register")
+        // Register (sans token) puis Login (avec token)
+        var reg = new RegisterRequest(email, "password1234", null);
+        mvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(req)))
-                .andExpect(status().isCreated())
+                        .content(json.writeValueAsString(reg)))
+                .andExpect(status().isCreated());
+
+        String body = mvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(new com.datashare.auth.dto.LoginRequest(email, "password1234"))))
+                .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return json.readTree(body).get("token").asText();
     }

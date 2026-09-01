@@ -16,15 +16,14 @@ public class AuthService {
     private final JwtService jwtService;
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtService jwtService) {
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
 
-    @Transactional
-    public AuthResponse register(RegisterRequest req) {
+    public UserResponse register(RegisterRequest req) {
         if (userRepository.existsByEmailIgnoreCase(req.email())) {
             throw new EmailAlreadyUsedException(req.email());
         }
@@ -33,9 +32,7 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(req.password()))
                 .name(req.name())
                 .build();
-        User saved = userRepository.save(user);
-        String token = jwtService.generate(saved.getId(), saved.getEmail());
-        return new AuthResponse(token, UserResponse.from(saved));
+        return UserResponse.from(userRepository.save(user));
     }
 
     @Transactional(readOnly = true)

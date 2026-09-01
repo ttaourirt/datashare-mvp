@@ -54,7 +54,7 @@ export class RegisterComponent {
     this.error.set(null);
     const { email, password, name } = this.form.getRawValue();
     this.auth.register(email, password, name || undefined).subscribe({
-      next: () => this.router.navigateByUrl('/files'),
+      next: () => this.router.navigate(['/login'], { queryParams: { registered: '1' } }),
       error: err => {
         this.error.set(this.pickError(err));
         this.loading.set(false);

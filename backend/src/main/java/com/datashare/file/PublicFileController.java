@@ -4,7 +4,6 @@ import com.datashare.file.dto.DownloadRequest;
 import com.datashare.file.dto.FileResponse;
 import com.datashare.file.dto.PublicFileMeta;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -15,7 +14,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -38,10 +36,9 @@ public class PublicFileController {
     // US02 — téléchargement effectif (POST car peut porter un mot de passe)
     @PostMapping("/files/{token}/download")
     public ResponseEntity<InputStreamResource> download(@PathVariable UUID token,
-                                                        @RequestBody(required = false) DownloadRequest body,
-                                                        HttpServletRequest request) throws IOException {
+                                                        @RequestBody(required = false) DownloadRequest body) throws IOException {
         String password = body == null ? null : body.password();
-        FileEntity file = fileService.authorizeDownload(token, password, clientIp(request));
+        FileEntity file = fileService.authorizeDownload(token, password);
         InputStream stream = fileService.openStream(file);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(file.getMimeType()));
@@ -57,12 +54,5 @@ public class PublicFileController {
                                                         @RequestParam(required = false) String password) throws IOException {
         FileEntity saved = fileService.upload(null, file, expiresInDays, password, null);
         return ResponseEntity.status(HttpStatus.CREATED).body(FileResponse.from(saved));
-    }
-
-    private static String clientIp(HttpServletRequest request) {
-        return Optional.ofNullable(request.getHeader("X-Forwarded-For"))
-                .map(h -> h.split(",")[0].trim())
-                .filter(s -> !s.isBlank())
-                .orElseGet(request::getRemoteAddr);
     }
 }

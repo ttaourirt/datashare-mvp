@@ -28,20 +28,17 @@ public class FileService {
     private static final Logger log = LoggerFactory.getLogger(FileService.class);
 
     private final FileRepository fileRepository;
-    private final DownloadEventRepository downloadEventRepository;
     private final TagRepository tagRepository;
     private final FileStorageService storage;
     private final UploadPolicy uploadPolicy;
     private final PasswordEncoder passwordEncoder;
 
     public FileService(FileRepository fileRepository,
-                       DownloadEventRepository downloadEventRepository,
                        TagRepository tagRepository,
                        FileStorageService storage,
                        UploadPolicy uploadPolicy,
                        PasswordEncoder passwordEncoder) {
         this.fileRepository = fileRepository;
-        this.downloadEventRepository = downloadEventRepository;
         this.tagRepository = tagRepository;
         this.storage = storage;
         this.uploadPolicy = uploadPolicy;
@@ -118,18 +115,14 @@ public class FileService {
         return file;
     }
 
-    /** US02 — valide le mdp éventuel et enregistre l'événement. */
-    @Transactional
-    public FileEntity authorizeDownload(UUID token, String password, String ip) {
+    /** US02 — valide le mdp éventuel. */
+    @Transactional(readOnly = true)
+    public FileEntity authorizeDownload(UUID token, String password) {
         FileEntity file = findPublicByToken(token);
-        boolean ok;
         if (file.isPasswordProtected()) {
-            ok = password != null && passwordEncoder.matches(password, file.getDownloadPasswordHash());
-        } else {
-            ok = true;
+            boolean ok = password != null && passwordEncoder.matches(password, file.getDownloadPasswordHash());
+            if (!ok) throw new ForbiddenException("Invalid password");
         }
-        downloadEventRepository.save(DownloadEvent.builder().file(file).ip(ip).passwordOk(ok).build());
-        if (!ok) throw new ForbiddenException("Invalid password");
         return file;
     }
 

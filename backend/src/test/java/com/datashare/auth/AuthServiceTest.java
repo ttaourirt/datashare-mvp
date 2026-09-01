@@ -30,7 +30,7 @@ class AuthServiceTest {
     @InjectMocks AuthService authService;
 
     @Test
-    void register_success_returnsTokenAndUser() {
+    void register_success_returnsUser() {
         RegisterRequest req = new RegisterRequest("alice@example.com", "password123", "Alice");
         when(userRepository.existsByEmailIgnoreCase("alice@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("hash");
@@ -39,13 +39,13 @@ class AuthServiceTest {
             u.setId(1L);
             return u;
         });
-        when(jwtService.generate(1L, "alice@example.com")).thenReturn("jwt.token.value");
 
         var resp = authService.register(req);
 
-        assertThat(resp.token()).isEqualTo("jwt.token.value");
-        assertThat(resp.user().email()).isEqualTo("alice@example.com");
-        assertThat(resp.user().name()).isEqualTo("Alice");
+        assertThat(resp.id()).isEqualTo(1L);
+        assertThat(resp.email()).isEqualTo("alice@example.com");
+        assertThat(resp.name()).isEqualTo("Alice");
+        verifyNoInteractions(jwtService); // pas de token à l'inscription
     }
 
     @Test

@@ -26,9 +26,10 @@ export class AuthService {
   readonly user = signal<UserResponse | null>(this.loadUser());
   readonly token = signal<string | null>(localStorage.getItem(TOKEN_KEY));
 
-  register(email: string, password: string, name?: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.api}/auth/register`, { email, password, name })
-      .pipe(tap(r => this.persist(r)));
+  register(email: string, password: string, name?: string): Observable<UserResponse> {
+    // Le back renvoie juste l'utilisateur créé, sans token :
+    // l'utilisateur doit ensuite se connecter via login().
+    return this.http.post<UserResponse>(`${this.api}/auth/register`, { email, password, name });
   }
 
   login(email: string, password: string): Observable<AuthResponse> {

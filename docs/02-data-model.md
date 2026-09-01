@@ -7,7 +7,6 @@ erDiagram
     USER ||--o{ FILE : "possède"
     FILE ||--o{ FILE_TAG : "tagué par"
     TAG  ||--o{ FILE_TAG : "attache"
-    FILE ||--o{ DOWNLOAD_EVENT : "génère"
 
     USER {
         bigint id PK
@@ -40,14 +39,6 @@ erDiagram
     FILE_TAG {
         bigint file_id PK, FK
         bigint tag_id PK, FK
-    }
-
-    DOWNLOAD_EVENT {
-        bigint id PK
-        bigint file_id FK
-        string ip
-        timestamp downloaded_at
-        boolean password_ok "false si mauvais mdp"
     }
 ```
 
@@ -104,16 +95,6 @@ Table de jointure many-to-many.
 |---|---|---|
 | `file_id` | BIGINT | FK files(id) ON DELETE CASCADE, PK partiel |
 | `tag_id` | BIGINT | FK tags(id) ON DELETE CASCADE, PK partiel |
-
-### `download_events` (traçabilité — utile pour PERF.md et debug)
-
-| Colonne | Type | Contraintes |
-|---|---|---|
-| `id` | BIGSERIAL | PK |
-| `file_id` | BIGINT | FK files(id) ON DELETE CASCADE |
-| `ip` | VARCHAR(45) | NOT NULL (IPv6 max 45) |
-| `downloaded_at` | TIMESTAMPTZ | NOT NULL DEFAULT now() |
-| `password_ok` | BOOLEAN | NOT NULL |
 
 ## Règles dérivées des US
 
