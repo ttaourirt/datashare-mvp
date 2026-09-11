@@ -35,7 +35,6 @@ public class AuthService {
         return UserResponse.from(userRepository.save(user));
     }
 
-    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest req) {
         User user = userRepository.findByEmailIgnoreCase(req.email())
                 .orElseThrow(InvalidCredentialsException::new);

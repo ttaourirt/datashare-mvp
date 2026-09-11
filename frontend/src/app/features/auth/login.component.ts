@@ -8,32 +8,69 @@ import { AuthService } from '../../core/auth/auth.service';
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
   template: `
-    <div class="card">
-      <h1>Connexion</h1>
-      @if (justRegistered()) {
-        <div style="background:#ecfdf5; padding:8px; border-radius:6px; margin-bottom:12px;">
-          Compte créé. Connectez-vous.
+    <div class="auth-page gradient-coral">
+      <header class="auth-header">
+        <a class="logo" routerLink="/">DataShare</a>
+      </header>
+
+      <section class="auth-body">
+        <div class="card auth-card">
+          <h1>Connexion</h1>
+
+          @if (justRegistered()) {
+            <div class="success-banner">
+              Compte créé avec succès. Connecte-toi maintenant.
+            </div>
+          }
+          @if (error()) { <div class="error-banner">{{ error() }}</div> }
+
+          <form [formGroup]="form" (ngSubmit)="submit()">
+            <label class="field">
+              <span>Email</span>
+              <input type="email" formControlName="email" autocomplete="email" required />
+            </label>
+            <label class="field">
+              <span>Mot de passe</span>
+              <input type="password" formControlName="password" autocomplete="current-password" required />
+            </label>
+            <button type="submit" class="btn btn--coral" style="width:100%; margin-top:8px;"
+                    [disabled]="form.invalid || loading()">
+              {{ loading() ? 'Connexion…' : 'Se connecter' }}
+            </button>
+          </form>
+
+          <p class="auth-alt">
+            Pas de compte ? <a routerLink="/register">Créer un compte</a>
+          </p>
         </div>
-      }
-      @if (error()) { <div class="error">{{ error() }}</div> }
-      <form [formGroup]="form" (ngSubmit)="submit()">
-        <label class="field">
-          <span>Email</span>
-          <input type="email" formControlName="email" autocomplete="email" required />
-        </label>
-        <label class="field">
-          <span>Mot de passe</span>
-          <input type="password" formControlName="password" autocomplete="current-password" required />
-        </label>
-        <button type="submit" class="primary" [disabled]="form.invalid || loading()">
-          {{ loading() ? 'Connexion...' : 'Se connecter' }}
-        </button>
-      </form>
-      <p style="margin-top: 16px;">
-        Pas de compte ? <a routerLink="/register">Créer un compte</a>
-      </p>
+      </section>
+
+      <footer class="auth-footer">
+        <p class="copyright">Copyright DataShare® 2025</p>
+      </footer>
     </div>
   `,
+  styles: [`
+    .auth-page { min-height: 100vh; display: flex; flex-direction: column; }
+    .auth-header { padding: 24px 32px; }
+    .auth-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .auth-card { width: 100%; max-width: 400px; }
+    .auth-card h1 {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-weight: 400;
+      font-size: 28px;
+      margin: 0 0 16px;
+    }
+    .auth-alt { margin-top: 20px; font-size: 14px; text-align: center; }
+    .auth-alt a { font-weight: 500; }
+    .auth-footer { padding: 8px 32px 24px; }
+  `],
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);

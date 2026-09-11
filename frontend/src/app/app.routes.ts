@@ -3,6 +3,11 @@ import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent),
+  },
+  {
     path: 'login',
     loadComponent: () => import('./features/auth/login.component').then(m => m.LoginComponent),
   },
@@ -11,18 +16,19 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/register.component').then(m => m.RegisterComponent),
   },
   {
-    path: 'files',
-    canActivate: [authGuard],
-    loadComponent: () => import('./features/files/history.component').then(m => m.HistoryComponent),
-  },
-  {
-    path: 'send',
-    loadComponent: () => import('./features/public/anonymous-upload.component').then(m => m.AnonymousUploadComponent),
-  },
-  {
     path: 'd/:token',
     loadComponent: () => import('./features/public/download.component').then(m => m.DownloadComponent),
   },
-  { path: '', pathMatch: 'full', redirectTo: 'files' },
-  { path: '**', redirectTo: 'files' },
+  {
+    path: 'files',
+    canActivate: [authGuard],
+    loadComponent: () => import('./shared/shell.component').then(m => m.ShellComponent),
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./features/files/history.component').then(m => m.HistoryComponent),
+      },
+    ],
+  },
+  { path: '**', redirectTo: '' },
 ];
