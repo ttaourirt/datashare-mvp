@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
@@ -15,7 +15,13 @@ import { AuthService } from '../core/auth/auth.service';
         [class.sidebar--open]="drawerOpen()"
       >
         <div class="sidebar-inner">
-          <a class="logo logo--light" routerLink="/">DataShare</a>
+          <div class="sidebar-top">
+            <a class="logo logo--light" routerLink="/">DataShare</a>
+            <button
+              class="drawer-close"
+              (click)="closeDrawer()"
+              aria-label="Fermer le menu">×</button>
+          </div>
 
           <nav class="side-nav">
             <a
@@ -51,15 +57,33 @@ import { AuthService } from '../core/auth/auth.service';
             </svg>
           </button>
 
-          <div style="flex:1"></div>
+          <div class="topbar-spacer"></div>
 
+          <!-- Desktop actions -->
           <div class="topbar-actions">
             <button class="btn btn--dark btn--sm" (click)="openUpload()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
               Ajouter des fichiers
             </button>
-            <button class="btn btn--outline-dark btn--sm" (click)="logout()">
-              → Déconnexion
+            <button class="btn btn--ghost btn--sm" (click)="logout()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Déconnexion
             </button>
+          </div>
+
+          <!-- Mobile user pill -->
+          <div class="topbar-user">
+            <span class="avatar">{{ initial() }}</span>
+            <span class="username">{{ displayName() }}</span>
           </div>
         </header>
 
@@ -85,6 +109,17 @@ import { AuthService } from '../core/auth/auth.service';
       top: 0;
       padding: 24px 20px;
     }
+    .sidebar-top { display: flex; align-items: center; justify-content: space-between; }
+    .drawer-close {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-inv);
+      font-size: 26px;
+      cursor: pointer;
+      padding: 0 8px;
+      line-height: 1;
+    }
     .side-nav {
       margin-top: 32px;
       display: flex;
@@ -102,7 +137,7 @@ import { AuthService } from '../core/auth/auth.service';
       background: rgba(255, 247, 243, 0.15);
     }
     .side-nav a.active {
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.95);
       color: var(--text);
     }
     .side-footer { padding-top: 20px; }
@@ -124,7 +159,20 @@ import { AuthService } from '../core/auth/auth.service';
       top: 0;
       z-index: 10;
     }
+    .topbar-spacer { flex: 1; }
     .topbar-actions { display: flex; gap: 10px; }
+    .topbar-user { display: none; align-items: center; gap: 8px; }
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--coral-500);
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .username { font-size: 14px; font-weight: 500; }
+
     .burger {
       display: none;
       background: transparent;
@@ -147,7 +195,10 @@ import { AuthService } from '../core/auth/auth.service';
         z-index: 1001;
       }
       .sidebar--open { transform: translateX(0); }
+      .drawer-close { display: inline-flex; align-items: center; }
       .burger { display: inline-flex; }
+      .topbar-actions { display: none; }
+      .topbar-user { display: inline-flex; }
       .drawer-overlay {
         display: block;
         position: fixed;
@@ -164,12 +215,21 @@ export class ShellComponent {
   private readonly router = inject(Router);
 
   readonly drawerOpen = signal(false);
+  readonly displayName = computed(() => {
+    const u = this.auth.user();
+    if (!u) return '';
+    if (u.name) return u.name;
+    return u.email ? u.email.split('@')[0] : '';
+  });
+  readonly initial = computed(() => {
+    const name = this.displayName();
+    return name.length > 0 ? name[0].toUpperCase() : 'U';
+  });
 
   openDrawer(): void { this.drawerOpen.set(true); }
   closeDrawer(): void { this.drawerOpen.set(false); }
 
   openUpload(): void {
-    // On dispatche un event global — récupéré par HistoryComponent
     window.dispatchEvent(new CustomEvent('datashare:open-upload'));
   }
 
