@@ -1,76 +1,53 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { PublicLayoutComponent } from '../../shared/public-layout.component';
+import { IconComponent } from '../../shared/icon.component';
 
 @Component({
-    selector: 'app-login',
-    imports: [ReactiveFormsModule, RouterLink],
-    template: `
-    <div class="auth-page gradient-coral">
-      <header class="auth-header">
-        <a class="logo" routerLink="/">DataShare</a>
-      </header>
+  selector: 'app-login',
+  imports: [ReactiveFormsModule, RouterLink, PublicLayoutComponent, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <app-public-layout>
+      <section class="card auth-card" aria-labelledby="login-title">
+        <h1 class="card-title" id="login-title">Connexion</h1>
 
-      <section class="auth-body">
-        <div class="card auth-card">
-          <h1>Connexion</h1>
+        @if (justRegistered()) {
+          <div class="callout callout--success" role="status">Compte créé. Tu peux te connecter.</div>
+        }
+        @if (error()) {
+          <div class="callout callout--error" role="alert"><app-icon name="error" [size]="12" /> {{ error() }}</div>
+        }
 
-          @if (justRegistered()) {
-            <div class="success-banner">
-              Compte créé avec succès. Connecte-toi maintenant.
-            </div>
-          }
-          @if (error()) { <div class="error-banner">{{ error() }}</div> }
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="field">
+            <label class="field-label" for="login-email">Email</label>
+            <input id="login-email" type="email" formControlName="email" autocomplete="email"
+                   placeholder="Saisissez votre email..." required
+                   [attr.aria-invalid]="invalid('email') ? true : null" />
+            @if (invalid('email')) { <p class="field-error">Saisis une adresse email valide.</p> }
+          </div>
+          <div class="field">
+            <label class="field-label" for="login-password">Mot de passe</label>
+            <input id="login-password" type="password" formControlName="password" autocomplete="current-password"
+                   placeholder="Saisissez votre mot de passe..." required />
+          </div>
 
-          <form [formGroup]="form" (ngSubmit)="submit()">
-            <label class="field">
-              <span>Email</span>
-              <input type="email" formControlName="email" autocomplete="email" required />
-            </label>
-            <label class="field">
-              <span>Mot de passe</span>
-              <input type="password" formControlName="password" autocomplete="current-password" required />
-            </label>
-            <button type="submit" class="btn btn--coral" style="width:100%; margin-top:8px;"
-                    [disabled]="form.invalid || loading()">
-              {{ loading() ? 'Connexion…' : 'Se connecter' }}
-            </button>
-          </form>
+          <p class="auth-alt"><a class="link" routerLink="/register">Créer un compte</a></p>
 
-          <p class="auth-alt">
-            Pas de compte ? <a routerLink="/register">Créer un compte</a>
-          </p>
-        </div>
+          <button type="submit" class="btn btn--primary btn--block" [disabled]="form.invalid || loading()">
+            {{ loading() ? 'Connexion…' : 'Connexion' }}
+          </button>
+        </form>
       </section>
-
-      <footer class="auth-footer">
-        <p class="copyright">Copyright DataShare® 2025</p>
-      </footer>
-    </div>
+    </app-public-layout>
   `,
-    changeDetection: ChangeDetectionStrategy.Eager,
-    styles: [`
-    .auth-page { min-height: 100vh; display: flex; flex-direction: column; }
-    .auth-header { padding: 24px 32px; }
-    .auth-body {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .auth-card { width: 100%; max-width: 400px; }
-    .auth-card h1 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-weight: 400;
-      font-size: 28px;
-      margin: 0 0 16px;
-    }
-    .auth-alt { margin-top: 20px; font-size: 14px; text-align: center; }
-    .auth-alt a { font-weight: 500; }
-    .auth-footer { padding: 8px 32px 24px; }
-  `]
+  styles: [`
+    .auth-card { max-width: 640px; }
+    .auth-alt { text-align: center; margin: 4px 0 10px; }
+  `],
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
@@ -87,6 +64,11 @@ export class LoginComponent {
     password: ['', [Validators.required]],
   });
 
+  invalid(name: 'email' | 'password'): boolean {
+    const c = this.form.controls[name];
+    return c.touched && c.invalid;
+  }
+
   submit(): void {
     if (this.form.invalid) return;
     this.loading.set(true);
@@ -94,8 +76,8 @@ export class LoginComponent {
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
       next: () => this.router.navigateByUrl('/files'),
-      error: err => {
-        this.error.set(err?.error?.message ?? 'Identifiants invalides');
+      error: () => {
+        this.error.set('Email ou mot de passe incorrect.');
         this.loading.set(false);
       },
     });

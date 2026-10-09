@@ -1,76 +1,73 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { PublicLayoutComponent } from '../../shared/public-layout.component';
+import { IconComponent } from '../../shared/icon.component';
+
+function passwordsMatch(group: AbstractControl): ValidationErrors | null {
+  const { password, confirm } = group.value as { password: string; confirm: string };
+  return confirm && password !== confirm ? { mismatch: true } : null;
+}
 
 @Component({
-    selector: 'app-register',
-    imports: [ReactiveFormsModule, RouterLink],
-    template: `
-    <div class="auth-page gradient-coral">
-      <header class="auth-header">
-        <a class="logo" routerLink="/">DataShare</a>
-      </header>
+  selector: 'app-register',
+  imports: [ReactiveFormsModule, RouterLink, PublicLayoutComponent, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <app-public-layout>
+      <section class="card auth-card" aria-labelledby="register-title">
+        <h1 class="card-title" id="register-title">Créer un compte</h1>
 
-      <section class="auth-body">
-        <div class="card auth-card">
-          <h1>Créer un compte</h1>
+        @if (error()) {
+          <div class="callout callout--error" role="alert"><app-icon name="error" [size]="12" /> {{ error() }}</div>
+        }
 
-          @if (error()) { <div class="error-banner">{{ error() }}</div> }
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          <div class="field">
+            <label class="field-label" for="register-email">Email</label>
+            <input id="register-email" type="email" formControlName="email" autocomplete="email"
+                   placeholder="Saisissez votre email..." required
+                   [attr.aria-invalid]="touchedInvalid('email') ? true : null"
+                   [attr.aria-describedby]="touchedInvalid('email') ? 'register-email-error' : null" />
+            @if (touchedInvalid('email')) {
+              <p class="field-error" id="register-email-error">Saisis une adresse email valide.</p>
+            }
+          </div>
+          <div class="field">
+            <label class="field-label" for="register-password">Mot de passe</label>
+            <input id="register-password" type="password" formControlName="password" autocomplete="new-password"
+                   placeholder="Saisissez votre mot de passe..." required
+                   [attr.aria-invalid]="touchedInvalid('password') ? true : null"
+                   [attr.aria-describedby]="'register-password-hint'" />
+            <p class="field-hint" id="register-password-hint"
+               [class.field-error]="touchedInvalid('password')">8 caractères minimum.</p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="register-confirm">Vérification du mot de passe</label>
+            <input id="register-confirm" type="password" formControlName="confirm" autocomplete="new-password"
+                   placeholder="Saisissez le à nouveau" required
+                   [attr.aria-invalid]="mismatch() ? true : null"
+                   [attr.aria-describedby]="mismatch() ? 'register-confirm-error' : null" />
+            @if (mismatch()) {
+              <p class="field-error" id="register-confirm-error">Les mots de passe ne correspondent pas.</p>
+            }
+          </div>
 
-          <form [formGroup]="form" (ngSubmit)="submit()">
-            <label class="field">
-              <span>Email</span>
-              <input type="email" formControlName="email" autocomplete="email" required />
-            </label>
-            <label class="field">
-              <span>Nom (facultatif)</span>
-              <input type="text" formControlName="name" autocomplete="name" />
-            </label>
-            <label class="field">
-              <span>Mot de passe (min. 8 caractères)</span>
-              <input type="password" formControlName="password" autocomplete="new-password"
-                     required minlength="8" />
-            </label>
-            <button type="submit" class="btn btn--coral" style="width:100%; margin-top:8px;"
-                    [disabled]="form.invalid || loading()">
-              {{ loading() ? 'Création…' : "S'inscrire" }}
-            </button>
-          </form>
+          <p class="auth-alt"><a class="link" routerLink="/login">J'ai déjà un compte</a></p>
 
-          <p class="auth-alt">
-            Déjà inscrit ? <a routerLink="/login">Se connecter</a>
-          </p>
-        </div>
+          <button type="submit" class="btn btn--primary btn--block" [disabled]="form.invalid || loading()">
+            {{ loading() ? 'Création…' : 'Créer mon compte' }}
+          </button>
+        </form>
       </section>
-
-      <footer class="auth-footer">
-        <p class="copyright">Copyright DataShare® 2025</p>
-      </footer>
-    </div>
+    </app-public-layout>
   `,
-    changeDetection: ChangeDetectionStrategy.Eager,
-    styles: [`
-    .auth-page { min-height: 100vh; display: flex; flex-direction: column; }
-    .auth-header { padding: 24px 32px; }
-    .auth-body {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .auth-card { width: 100%; max-width: 400px; }
-    .auth-card h1 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-weight: 400;
-      font-size: 28px;
-      margin: 0 0 16px;
-    }
-    .auth-alt { margin-top: 20px; font-size: 14px; text-align: center; }
-    .auth-alt a { font-weight: 500; }
-    .auth-footer { padding: 8px 32px 24px; }
-  `]
+  styles: [`
+    .auth-card { max-width: 640px; }
+    .auth-alt { text-align: center; margin: 4px 0 10px; }
+    .field-hint { margin: 6px 0 0; font-size: 11px; color: var(--text-mut); }
+  `],
 })
 export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
@@ -80,18 +77,28 @@ export class RegisterComponent {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  // US03 — email valide, mot de passe ≥ 8 caractères (contrôlés aussi côté serveur)
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
-    name: [''],
     password: ['', [Validators.required, Validators.minLength(8)]],
-  });
+    confirm: ['', [Validators.required]],
+  }, { validators: passwordsMatch });
+
+  touchedInvalid(name: 'email' | 'password'): boolean {
+    const c = this.form.controls[name];
+    return c.touched && c.invalid;
+  }
+
+  mismatch(): boolean {
+    return this.form.controls.confirm.touched && this.form.hasError('mismatch');
+  }
 
   submit(): void {
     if (this.form.invalid) return;
     this.loading.set(true);
     this.error.set(null);
-    const { email, password, name } = this.form.getRawValue();
-    this.auth.register(email, password, name || undefined).subscribe({
+    const { email, password } = this.form.getRawValue();
+    this.auth.register(email, password).subscribe({
       next: () => this.router.navigate(['/login'], { queryParams: { registered: '1' } }),
       error: err => {
         this.error.set(this.pickError(err));

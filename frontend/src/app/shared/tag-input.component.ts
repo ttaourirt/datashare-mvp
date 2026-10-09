@@ -5,11 +5,10 @@ export const MAX_TAG_LENGTH = 30;
 /** US08 — saisie libre de tags : Entrée ou virgule pour valider, pas de doublon, 30 caractères max. */
 @Component({
   selector: 'app-tag-input',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="field">
-      <label [for]="inputId()"><span>{{ label() }}</span></label>
+      <label class="field-label" [for]="inputId()">{{ label() }}</label>
       <div class="tag-input">
         @for (t of tags(); track t) {
           <span class="tag-chip">

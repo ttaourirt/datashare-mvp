@@ -16,12 +16,12 @@ describe('UploadModalComponent', () => {
 
     afterEach(() => http.verify());
 
-    function setup(anonymous = false) {
+    function setup(anonymous = false, file: File | null = new File(['hello'], 'hello.txt', { type: 'text/plain' })) {
         const fixture = TestBed.createComponent(UploadModalComponent);
         fixture.componentRef.setInput('anonymous', anonymous);
+        fixture.componentRef.setInput('initialFile', file);
         fixture.detectChanges();
         const component = fixture.componentInstance;
-        component.file.set(new File(['hello'], 'hello.txt', { type: 'text/plain' }));
         return { fixture, component };
     }
 
@@ -62,5 +62,34 @@ describe('UploadModalComponent', () => {
         expect(fixture.nativeElement.querySelector('app-tag-input')).toBeNull();
         component.submit();
         http.expectOne(`${environment.apiUrl}/public/files`).flush({});
+    });
+
+    it('refuses files over 1 GB before calling the API (US01)', () => {
+        const big = new File(['x'], 'film.mp4');
+        Object.defineProperty(big, 'size', { value: 1_073_741_825 });
+        const { component, fixture } = setup(false, big);
+        expect(fixture.nativeElement.textContent).toContain('La taille des fichiers est limitée à 1 Go');
+        expect(component.canSubmit()).toBe(false);
+        component.submit();
+        http.expectNone(`${environment.apiUrl}/files`);
+    });
+
+    it('refuses blocked extensions (US01)', () => {
+        const { component } = setup(false, new File(['MZ'], 'virus.EXE'));
+        expect(component.fileProblem()).toContain('.exe');
+    });
+
+    it('shows the share link after upload', () => {
+        const { component, fixture } = setup();
+        component.submit();
+        http.expectOne(`${environment.apiUrl}/files`).flush({
+            id: 1, publicToken: 'abc-123', originalName: 'hello.txt', mimeType: 'text/plain', sizeBytes: 5,
+            uploadedAt: '', expiresAt: '', passwordProtected: false, expired: false, downloadUrl: '', tags: [],
+        });
+        fixture.detectChanges();
+        const text: string = fixture.nativeElement.textContent;
+        expect(text).toContain('Félicitations');
+        expect(text).toContain('une semaine');
+        expect(fixture.nativeElement.querySelector('.share-link').getAttribute('href')).toContain('/d/abc-123');
     });
 });

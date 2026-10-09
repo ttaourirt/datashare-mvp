@@ -50,7 +50,9 @@
           "options": {
             "tsConfig": "tsconfig.spec.json",
             "runner": "vitest",
-            "coverageReporters": ["html", "text-summary", "json-summary"]
+            "coverageReporters": ["html", "text-summary", "json-summary"],
+            "coverageInclude": ["src/app/**/*.ts"],
+            "coverageExclude": ["src/app/**/*.spec.ts"]
           }
         }
         }

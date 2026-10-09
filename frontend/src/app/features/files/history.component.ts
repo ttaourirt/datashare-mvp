@@ -1,203 +1,210 @@
-import { Component, DestroyRef, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { Component, ChangeDetectionStrategy, DestroyRef, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { fromEvent } from 'rxjs';
 import { FileApi, FileResponse } from '../../core/api/file.api';
 import { UploadModalComponent } from './upload-modal.component';
-import { formatBytes } from '../../shared/format';
+import { daysUntil, formatBytes } from '../../shared/format';
 import { TagInputComponent } from '../../shared/tag-input.component';
+import { IconComponent } from '../../shared/icon.component';
 
 type Filter = 'all' | 'active' | 'expired';
 
+/** US05 / US06 / US08 — « Mes fichiers ». */
 @Component({
-    selector: 'app-history',
-    imports: [CommonModule, DatePipe, UploadModalComponent, TagInputComponent],
-    template: `
-    <div class="history">
-      <h1>Mes fichiers</h1>
+  selector: 'app-history',
+  imports: [DatePipe, UploadModalComponent, TagInputComponent, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:click)': 'menuFor.set(null)' },
+  template: `
+    <h1 class="title">Mes fichiers</h1>
 
-      <div class="tabs" role="tablist">
-        <button
-          role="tab"
-          [class.active]="filter() === 'all'"
-          [attr.aria-selected]="filter() === 'all'"
-          (click)="filter.set('all')">Tout</button>
-        <button
-          role="tab"
-          [class.active]="filter() === 'active'"
-          [attr.aria-selected]="filter() === 'active'"
-          (click)="filter.set('active')">Actifs</button>
-        <button
-          role="tab"
-          [class.active]="filter() === 'expired'"
-          [attr.aria-selected]="filter() === 'expired'"
-          (click)="filter.set('expired')">Expiré</button>
+    <div class="toolbar">
+      <div class="switch" role="tablist" aria-label="Filtrer les fichiers">
+        @for (t of tabs; track t.value) {
+          <button type="button" role="tab" [attr.aria-selected]="filter() === t.value"
+                  (click)="filter.set(t.value)">{{ t.label }}</button>
+        }
       </div>
 
       @if (allTags().length > 0) {
         <label class="tag-filter">
-          <span>Filtrer par tag</span>
+          <span class="sr-only">Filtrer par tag</span>
           <select class="input" [value]="tagFilter() ?? ''" (change)="setTagFilter($any($event.target).value)">
             <option value="">Tous les tags</option>
-            @for (t of allTags(); track t) {
-              <option [value]="t">{{ t }}</option>
-            }
+            @for (t of allTags(); track t) { <option [value]="t">{{ t }}</option> }
           </select>
         </label>
       }
+    </div>
 
-      <div class="files-card">
-        @if (loading()) {
-          <p class="text-mut">Chargement…</p>
-        } @else if (filtered().length === 0) {
-          <p class="text-mut">Aucun fichier {{ filter() === 'expired' ? 'expiré' : filter() === 'active' ? 'actif' : '' }} pour le moment.</p>
-        } @else {
-          <ul class="files-list">
-            @for (f of filtered(); track f.id) {
-              <li class="file-row">
-                <div class="file-icon" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                       stroke="currentColor" stroke-width="1.8"
-                       stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                  </svg>
+    @if (loading()) {
+      <p class="text-mut">Chargement…</p>
+    } @else if (filtered().length === 0) {
+      <p class="empty text-mut">Aucun fichier {{ filter() === 'expired' ? 'expiré' : filter() === 'active' ? 'actif' : '' }} pour le moment.</p>
+    } @else {
+      <ul class="files" role="list">
+        @for (f of filtered(); track f.id) {
+          <li class="file-row">
+            <app-icon class="file-row__icon" name="file" [size]="18" />
+
+            <div class="file-row__meta">
+              <div class="file-row__name" [title]="f.originalName">{{ f.originalName }}</div>
+              <div class="file-row__sub">
+                <span [class.expired]="f.expired">{{ statusLabel(f) }}</span>
+                <span class="file-row__details">
+                  · {{ humanSize(f.sizeBytes) }}
+                  · Envoyé le {{ f.uploadedAt | date:'dd/MM/yyyy HH:mm' }}
+                  · Expire le {{ f.expiresAt | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </div>
+              @if (f.tags.length > 0) {
+                <div class="file-row__tags">
+                  @for (t of f.tags; track t.id) { <span class="tag-chip">{{ t.name }}</span> }
                 </div>
+              }
+            </div>
 
-                <div class="file-meta">
-                  <div class="file-name">
-                    <span>{{ f.originalName }}</span>
-                    @if (f.passwordProtected) {
-                      <span class="lock" title="Protégé par mot de passe">🔒</span>
-                    }
-                  </div>
-                  <div class="file-sub text-mut">
-                    {{ statusLabel(f) }} · {{ humanSize(f.sizeBytes) }}
-                    · Envoyé le {{ f.uploadedAt | date:'dd/MM/yyyy HH:mm' }}
-                    · Expire le {{ f.expiresAt | date:'dd/MM/yyyy HH:mm' }}
-                  </div>
-                  @if (f.tags.length > 0) {
-                    <div class="file-tags">
-                      @for (t of f.tags; track t.id) { <span class="tag-chip">{{ t.name }}</span> }
-                    </div>
-                  }
-                </div>
+            @if (f.passwordProtected) {
+              <span class="lock" title="Protégé par mot de passe">
+                <app-icon name="lock" [size]="12" />
+                <span class="sr-only">Protégé par mot de passe</span>
+              </span>
+            }
 
-                <div class="file-actions">
-                  @if (!f.expired) {
-                    <button class="btn btn--ghost btn--sm" (click)="startEditTags(f)"
-                            [attr.aria-expanded]="editingId() === f.id">Tags</button>
-                    <button class="btn btn--danger btn--sm" (click)="remove(f)">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                           stroke="currentColor" stroke-width="2"
-                           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                        <path d="M10 11v6"/><path d="M14 11v6"/>
-                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                      </svg>
-                      Supprimer
+            @if (f.expired) {
+              <span class="expired-msg">Ce fichier a expiré, il n'est plus stocké chez nous</span>
+            } @else {
+              <div class="actions">
+                <button type="button" class="btn btn--outline btn--xs" (click)="startEditTags(f)"
+                        [attr.aria-expanded]="editingId() === f.id">
+                  <app-icon name="tag" [size]="11" /> Tags
+                </button>
+                <button type="button" class="btn btn--outline btn--xs" (click)="remove(f)">
+                  <app-icon name="trash" [size]="11" /> Supprimer
+                </button>
+                <a class="btn btn--outline btn--xs" [href]="publicPath(f)" target="_blank" rel="noopener">
+                  Accéder <app-icon name="arrowRight" [size]="11" />
+                </a>
+              </div>
+
+              <div class="kebab">
+                <button type="button" class="btn btn--outline btn--xs btn--icon"
+                        [attr.aria-label]="'Actions pour ' + f.originalName"
+                        aria-haspopup="menu" [attr.aria-expanded]="menuFor() === f.id"
+                        (click)="toggleMenu(f.id, $event)">
+                  <app-icon name="more" [size]="12" />
+                </button>
+                @if (menuFor() === f.id) {
+                  <div class="menu" role="menu" (click)="$event.stopPropagation()">
+                    <a role="menuitem" [href]="publicPath(f)" target="_blank" rel="noopener">
+                      <app-icon name="arrowRight" [size]="12" /> Accéder
+                    </a>
+                    <button type="button" role="menuitem" (click)="startEditTags(f)">
+                      <app-icon name="tag" [size]="12" /> Tags
                     </button>
-                    <a class="btn btn--dark btn--sm" [href]="publicPath(f)" target="_blank">Accéder →</a>
-                  } @else {
-                    <span class="expired-msg text-mut">Ce fichier a expiré, il n'est plus stocké chez vous.</span>
-                  }
-                </div>
-
-                @if (editingId() === f.id) {
-                  <div class="tags-editor">
-                    <app-tag-input [inputId]="'tags-' + f.id" label="Tags du fichier" [(tags)]="editTags" />
-                    <div class="tags-editor__actions">
-                      <button class="btn btn--ghost btn--sm" (click)="editingId.set(null)">Annuler</button>
-                      <button class="btn btn--dark btn--sm" (click)="saveTags(f)">Enregistrer</button>
-                    </div>
+                    <button type="button" role="menuitem" class="danger" (click)="remove(f)">
+                      <app-icon name="trash" [size]="12" /> Supprimer
+                    </button>
                   </div>
                 }
-              </li>
+              </div>
             }
-          </ul>
-        }
-      </div>
 
-      @if (uploadOpen()) {
-        <app-upload-modal (close)="uploadOpen.set(false)" (uploaded)="onUploaded($event)" />
-      }
-    </div>
+            @if (editingId() === f.id) {
+              <div class="tags-editor">
+                <app-tag-input [inputId]="'tags-' + f.id" label="Tags du fichier" [(tags)]="editTags" />
+                <div class="tags-editor__actions">
+                  <button type="button" class="btn btn--text" (click)="editingId.set(null)">Annuler</button>
+                  <button type="button" class="btn btn--primary btn--xs" (click)="saveTags(f)">Enregistrer</button>
+                </div>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    }
+
+    @if (uploadOpen()) {
+      <app-upload-modal (close)="uploadOpen.set(false)" (uploaded)="refresh()" />
+    }
   `,
-    changeDetection: ChangeDetectionStrategy.Eager,
-    styles: [`
-    .history { max-width: 1000px; margin: 0 auto; }
-    h1 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-weight: 400;
-      font-size: 30px;
-      margin: 8px 0 20px;
-    }
-    .tabs { margin-bottom: 16px; }
-    .files-card {
-      background: var(--bg-card);
-      border-radius: var(--r-lg);
-      padding: 8px 4px;
-      box-shadow: var(--sh-1);
-    }
-    .files-list { list-style: none; margin: 0; padding: 0; }
+  styles: [`
+    .title { font-size: 20px; font-weight: 700; margin: 4px 0 14px; }
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .tag-filter select { height: 26px; width: auto; min-width: 140px; font-size: 11px; padding: 0 8px; }
+    .empty { font-size: 12px; }
+    .files { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
     .file-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 14px;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--border);
-    }
-    .file-row:last-child { border-bottom: none; }
-    .file-icon {
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--bg-muted);
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      background: var(--bg-row);
+      border: 1px solid var(--border);
       border-radius: var(--r-sm);
-      color: var(--text);
-      flex-shrink: 0;
     }
-    .file-meta { flex: 1 1 0; min-width: 0; }
-    .file-name {
+    .file-row__icon { flex-shrink: 0; }
+    .file-row__meta { flex: 1 1 0; min-width: 0; }
+    .file-row__name {
+      font-size: 12px; font-weight: 500;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .file-row__sub { font-size: 10px; color: var(--text); }
+    .file-row__details { color: var(--text-mut); }
+    .expired { color: var(--danger-text); }
+    .file-row__tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .lock { display: inline-flex; color: var(--text); }
+    .actions { display: flex; gap: 6px; }
+    .expired-msg { font-size: 10px; color: var(--text-mut); text-align: right; }
+    .kebab { display: none; position: relative; }
+    .menu {
+      position: absolute; right: 0; top: calc(100% + 4px); z-index: 20;
+      min-width: 140px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      box-shadow: var(--sh-card);
+      padding: 4px;
+      display: flex; flex-direction: column;
+    }
+    .menu a, .menu button {
       display: flex; align-items: center; gap: 8px;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      padding: 8px 10px;
+      border: none; background: transparent; border-radius: var(--r-xs);
+      font: inherit; font-size: 12px; text-align: left; text-decoration: none; color: var(--text);
+      cursor: pointer;
     }
-    .lock { font-size: 12px; }
-    .file-sub { font-size: 12px; margin-top: 2px; }
-    .file-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-shrink: 0;
-    }
-    .expired-msg { font-size: 12px; text-align: right; }
-    .file-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-    .tag-filter { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; font-weight: 500; }
-    .tag-filter select { width: auto; min-width: 180px; padding: 6px 12px; }
-    .tags-editor { flex-basis: 100%; padding: 4px 0 0 50px; }
+    .menu a:hover, .menu button:hover { background: var(--bg-muted); }
+    .menu .danger { color: var(--danger-text); }
+    .tags-editor { flex-basis: 100%; padding: 4px 0 0 28px; }
     .tags-editor__actions { display: flex; justify-content: flex-end; gap: 8px; }
-    @media (max-width: 700px) {
+
+    @media (max-width: 760px) {
+      .file-row__details { display: none; }
+      .actions, .expired-msg { display: none; }
+      .kebab { display: block; }
       .tags-editor { padding-left: 0; }
-      .file-actions { width: 100%; justify-content: flex-end; }
     }
-  `]
+  `],
 })
 export class HistoryComponent {
   private readonly api = inject(FileApi);
   private readonly destroyRef = inject(DestroyRef);
+
+  protected readonly tabs: { value: Filter; label: string }[] = [
+    { value: 'all', label: 'Tous' },
+    { value: 'active', label: 'Actifs' },
+    { value: 'expired', label: 'Expiré' },
+  ];
 
   protected readonly files = signal<FileResponse[]>([]);
   protected readonly loading = signal(true);
   // US06 — seuls les fichiers non expirés sont affichés par défaut
   protected readonly filter = signal<Filter>('active');
   protected readonly tagFilter = signal<string | null>(null);
+  protected readonly uploadOpen = signal(false);
   protected readonly editingId = signal<number | null>(null);
   protected readonly editTags = signal<string[]>([]);
-  protected readonly uploadOpen = signal(false);
+  protected readonly menuFor = signal<number | null>(null);
 
   protected readonly filtered = computed(() => {
     const all = this.files();
@@ -212,20 +219,21 @@ export class HistoryComponent {
     [...new Set(this.files().flatMap(f => f.tags.map(t => t.name)))].sort((a, b) => a.localeCompare(b)));
 
   constructor() {
-    // Ouvrir le modal quand la topbar clique "Ajouter des fichiers"
+    // Ouvrir la modale quand la topbar clique « Ajouter des fichiers »
     fromEvent(window, 'datashare:open-upload')
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.uploadOpen.set(true));
     this.refresh();
   }
 
-  onUploaded(_: FileResponse): void {
-    this.uploadOpen.set(false);
-    this.refresh();
+  toggleMenu(id: number, ev: Event): void {
+    ev.stopPropagation();
+    this.menuFor.update(cur => (cur === id ? null : id));
   }
 
   remove(f: FileResponse): void {
-    if (!confirm(`Supprimer "${f.originalName}" ? Action irréversible.`)) return;
+    this.menuFor.set(null);
+    if (!confirm(`Supprimer « ${f.originalName} » ? Cette action est irréversible.`)) return;
     this.api.remove(f.id).subscribe(() => this.refresh());
   }
 
@@ -234,6 +242,7 @@ export class HistoryComponent {
   }
 
   startEditTags(f: FileResponse): void {
+    this.menuFor.set(null);
     this.editTags.set(f.tags.map(t => t.name));
     this.editingId.set(f.id);
   }
@@ -253,15 +262,13 @@ export class HistoryComponent {
 
   statusLabel(f: FileResponse): string {
     if (f.expired) return 'Expiré';
-    const d = new Date(f.expiresAt).getTime();
-    const now = Date.now();
-    const days = Math.ceil((d - now) / 86400000);
+    const days = daysUntil(f.expiresAt);
     if (days <= 0) return 'Expire aujourd’hui';
     if (days === 1) return 'Expire demain';
     return `Expire dans ${days} jours`;
   }
 
-  private refresh(): void {
+  refresh(): void {
     this.loading.set(true);
     this.api.list(true).subscribe({
       next: files => {

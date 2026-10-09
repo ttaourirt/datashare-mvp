@@ -1,214 +1,147 @@
-import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
-
+import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
+import { IconComponent } from './icon.component';
 
+/** Espace connecté (maquettes « Mon espace ») : sidebar dégradée en desktop, tiroir en mobile. */
 @Component({
-    selector: 'app-shell',
-    imports: [RouterLink, RouterLinkActive, RouterOutlet],
-    template: `
+  selector: 'app-shell',
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'closeDrawer()' },
+  template: `
     <div class="shell">
-      <!-- Sidebar desktop / Drawer mobile -->
-      <aside
-        class="sidebar gradient-coral"
-        [class.sidebar--open]="drawerOpen()"
-      >
-        <div class="sidebar-inner">
-          <div class="sidebar-top">
-            <a class="logo logo--light" routerLink="/">DataShare</a>
-            <button
-              class="drawer-close"
-              (click)="closeDrawer()"
-              aria-label="Fermer le menu">×</button>
-          </div>
-
-          <nav class="side-nav">
-            <a
-              routerLink="/files"
-              routerLinkActive="active"
-              (click)="closeDrawer()">
-              Mes fichiers
-            </a>
-          </nav>
-
-          <div class="side-footer">
-            <p class="copyright copyright--light">Copyright DataShare® 2025</p>
-          </div>
+      <aside class="sidebar gradient" [class.sidebar--open]="drawerOpen()" id="app-sidebar"
+             aria-label="Navigation principale">
+        <div class="sidebar-top">
+          <button type="button" class="icon-btn drawer-close" (click)="closeDrawer()" aria-label="Fermer le menu">
+            <app-icon name="close" [size]="18" />
+          </button>
+          <a class="logo logo--light" routerLink="/">DataShare</a>
         </div>
+
+        <nav class="side-nav">
+          <a routerLink="/files" routerLinkActive="active" ariaCurrentWhenActive="page" (click)="closeDrawer()">
+            Mes fichiers
+          </a>
+        </nav>
+
+        <!-- Actions de la topbar desktop, accessibles depuis le tiroir en mobile -->
+        <div class="side-actions">
+          <button type="button" class="btn btn--dark btn--xs" (click)="openUpload()">Ajouter des fichiers</button>
+          <button type="button" class="btn btn--text side-logout" (click)="logout()">
+            <app-icon name="logout" [size]="12" /> Déconnexion
+          </button>
+        </div>
+
+        <p class="copyright copyright--light">Copyright DataShare® 2025</p>
       </aside>
 
-      <!-- Overlay drawer mobile -->
       @if (drawerOpen()) {
         <div class="drawer-overlay" (click)="closeDrawer()"></div>
       }
 
-      <!-- Main area -->
-      <main class="main">
+      <div class="main">
         <header class="topbar">
-          <button
-            class="burger"
-            (click)="openDrawer()"
-            aria-label="Ouvrir le menu">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <line x1="4" y1="7" x2="20" y2="7"/>
-              <line x1="4" y1="12" x2="20" y2="12"/>
-              <line x1="4" y1="17" x2="20" y2="17"/>
-            </svg>
+          <button type="button" class="icon-btn burger" (click)="openDrawer()" aria-label="Ouvrir le menu"
+                  aria-controls="app-sidebar" [attr.aria-expanded]="drawerOpen()">
+            <app-icon name="menu" [size]="20" />
           </button>
-
           <div class="topbar-spacer"></div>
 
-          <!-- Desktop actions -->
           <div class="topbar-actions">
-            <button class="btn btn--dark btn--sm" (click)="openUpload()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/>
-                <line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              Ajouter des fichiers
-            </button>
-            <button class="btn btn--ghost btn--sm" (click)="logout()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                <polyline points="16 17 21 12 16 7"/>
-                <line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-              Déconnexion
+            <button type="button" class="btn btn--dark btn--xs" (click)="openUpload()">Ajouter des fichiers</button>
+            <button type="button" class="btn btn--text" (click)="logout()">
+              <app-icon name="logout" [size]="12" /> Déconnexion
             </button>
           </div>
 
-          <!-- Mobile user pill -->
           <div class="topbar-user">
-            <span class="avatar">{{ initial() }}</span>
+            <span class="avatar" aria-hidden="true">{{ initial() }}</span>
             <span class="username">{{ displayName() }}</span>
           </div>
         </header>
 
-        <div class="content">
+        <main class="content" id="contenu">
           <router-outlet />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   `,
-    changeDetection: ChangeDetectionStrategy.Eager,
-    styles: [`
-    .shell { display: flex; min-height: 100vh; }
+  styles: [`
+    .shell { display: flex; min-height: 100vh; min-height: 100dvh; }
     .sidebar {
       width: var(--sidebar-w);
-      min-height: 100vh;
-      color: var(--text-inv);
       flex-shrink: 0;
+      display: flex; flex-direction: column;
+      padding: 18px 14px;
+      position: sticky; top: 0;
+      height: 100vh; height: 100dvh;
     }
-    .sidebar-inner {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      position: sticky;
-      top: 0;
-      padding: 24px 20px;
-    }
-    .sidebar-top { display: flex; align-items: center; justify-content: space-between; }
-    .drawer-close {
-      display: none;
-      background: transparent;
-      border: none;
-      color: var(--text-inv);
-      font-size: 26px;
-      cursor: pointer;
-      padding: 0 8px;
-      line-height: 1;
-    }
-    .side-nav {
-      margin-top: 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
-    }
+    .sidebar-top { display: flex; align-items: center; gap: 8px; padding: 0 4px; }
+    .sidebar .logo { font-size: 20px; }
+    .side-nav { margin-top: 28px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
     .side-nav a {
-      padding: 10px 14px;
-      border-radius: var(--r-md);
-      color: var(--text-inv);
+      padding: 6px 12px;
+      border-radius: var(--r-sm);
+      color: #7A3B2C;
       text-decoration: none;
+      font-size: 11px;
       font-weight: 500;
-      font-size: 14px;
-      background: rgba(255, 247, 243, 0.15);
     }
-    .side-nav a.active {
-      background: rgba(255, 255, 255, 0.95);
-      color: var(--text);
-    }
-    .side-footer { padding-top: 20px; }
+    .side-nav a.active { background: rgba(255, 236, 226, 0.85); }
+    .side-actions { display: none; }
+    .sidebar .copyright { padding: 0 4px; }
 
-    .main {
-      flex: 1;
-      background: var(--bg-app);
-      min-width: 0;
+    .icon-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      border: none; background: transparent; cursor: pointer; padding: 4px; color: inherit;
     }
+    .drawer-close { display: none; color: var(--cream); }
+
+    .main { flex: 1; min-width: 0; background: var(--bg-app); display: flex; flex-direction: column; }
     .topbar {
-      height: 68px;
-      padding: 0 24px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      height: 44px;
+      padding: 0 20px;
+      display: flex; align-items: center; gap: 12px;
       border-bottom: 1px solid var(--border);
-      background: var(--bg-app);
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      background: #FFF4EE;
+      position: sticky; top: 0; z-index: 10;
     }
     .topbar-spacer { flex: 1; }
-    .topbar-actions { display: flex; gap: 10px; }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
     .topbar-user { display: none; align-items: center; gap: 8px; }
     .avatar {
-      width: 32px; height: 32px;
-      border-radius: 50%;
-      background: var(--coral-500);
-      color: white;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--coral); color: #fff;
       display: flex; align-items: center; justify-content: center;
-      font-weight: 600;
-      font-size: 13px;
+      font-weight: 600; font-size: 11px;
     }
-    .username { font-size: 14px; font-weight: 500; }
-
-    .burger {
-      display: none;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      color: var(--text);
-    }
-    .content { padding: 24px; }
+    .username { font-size: 12px; font-weight: 500; }
+    .burger { display: none; color: var(--text); }
+    .content { padding: 20px; flex: 1; }
     .drawer-overlay { display: none; }
 
-    @media (max-width: 900px) {
+    @media (max-width: 760px) {
       .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
+        position: fixed; left: 0; top: 0; z-index: 1001;
+        width: min(78vw, 300px);
         transform: translateX(-100%);
         transition: transform .25s ease;
-        z-index: 1001;
+        visibility: hidden;
       }
-      .sidebar--open { transform: translateX(0); }
-      .drawer-close { display: inline-flex; align-items: center; }
+      .sidebar--open { transform: translateX(0); visibility: visible; }
+      .drawer-close { display: inline-flex; }
+      .side-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px; padding: 0 4px; }
+      .side-logout { color: #7A3B2C; padding: 0; }
       .burger { display: inline-flex; }
+      .topbar { background: #FFFBF8; height: 48px; padding: 0 12px; }
       .topbar-actions { display: none; }
       .topbar-user { display: inline-flex; }
-      .drawer-overlay {
-        display: block;
-        position: fixed;
-        inset: 0;
-        background: rgba(20, 5, 0, 0.5);
-        z-index: 1000;
-      }
-      .content { padding: 16px; }
+      .drawer-overlay { display: block; position: fixed; inset: 0; background: rgba(60, 60, 60, 0.45); z-index: 1000; }
+      .content { padding: 16px 12px; }
     }
-  `]
+  `],
 })
 export class ShellComponent {
   private readonly auth = inject(AuthService);
@@ -218,18 +151,15 @@ export class ShellComponent {
   readonly displayName = computed(() => {
     const u = this.auth.user();
     if (!u) return '';
-    if (u.name) return u.name;
-    return u.email ? u.email.split('@')[0] : '';
+    return u.name || u.email.split('@')[0];
   });
-  readonly initial = computed(() => {
-    const name = this.displayName();
-    return name.length > 0 ? name[0].toUpperCase() : 'U';
-  });
+  readonly initial = computed(() => this.displayName().charAt(0).toUpperCase() || 'U');
 
   openDrawer(): void { this.drawerOpen.set(true); }
   closeDrawer(): void { this.drawerOpen.set(false); }
 
   openUpload(): void {
+    this.closeDrawer();
     window.dispatchEvent(new CustomEvent('datashare:open-upload'));
   }
 

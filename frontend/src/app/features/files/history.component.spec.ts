@@ -40,7 +40,7 @@ describe('HistoryComponent', () => {
         return fixture;
     }
 
-    const names = (el: HTMLElement) => Array.from(el.querySelectorAll('.file-name > span:first-child')).map(e => e.textContent?.trim());
+    const names = (el: HTMLElement) => Array.from(el.querySelectorAll('.file-row__name')).map(e => e.textContent?.trim());
 
     it('shows only non-expired files by default (US06)', () => {
         const fixture = setup([file(1, 'actif.txt', false), file(2, 'vieux.txt', true)]);
@@ -49,10 +49,10 @@ describe('HistoryComponent', () => {
 
     it('shows upload and expiration dates, size and status (US05)', () => {
         const fixture = setup([file(1, 'actif.txt', false)]);
-        const sub: string = fixture.nativeElement.querySelector('.file-sub').textContent;
+        const sub: string = fixture.nativeElement.querySelector('.file-row__sub').textContent;
         expect(sub).toContain('Envoyé le');
         expect(sub).toContain('Expire le');
-        expect(sub).toContain('2.0 KB');
+        expect(sub).toContain('2 Ko');
     });
 
     it('filters by tag (US08)', () => {
@@ -92,6 +92,6 @@ describe('HistoryComponent', () => {
         expect(req.request.body).toEqual({ tags: ['client'] });
         req.flush(file(1, 'a.txt', false, ['client']));
         fixture.detectChanges();
-        expect(fixture.nativeElement.querySelector('.file-tags').textContent).toContain('client');
+        expect(fixture.nativeElement.querySelector('.file-row__tags').textContent).toContain('client');
     });
 });

@@ -1,103 +1,75 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FileApi, PublicFileMeta } from '../../core/api/file.api';
-import { formatBytes, saveBlob } from '../../shared/format';
+import { daysUntil, formatBytes, saveBlob } from '../../shared/format';
+import { PublicLayoutComponent } from '../../shared/public-layout.component';
+import { IconComponent } from '../../shared/icon.component';
 
+/** US02 — page publique de téléchargement (maquettes « Téléchargement »). */
 @Component({
-    selector: 'app-download',
-    imports: [CommonModule, DatePipe, ReactiveFormsModule, RouterLink],
-    template: `
-    <div class="dl-page gradient-coral">
-      <header class="dl-header">
-        <a class="logo" routerLink="/">DataShare</a>
-      </header>
+  selector: 'app-download',
+  imports: [ReactiveFormsModule, PublicLayoutComponent, IconComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <app-public-layout>
+      <section class="card dl-card" aria-labelledby="dl-title" aria-live="polite">
+        <h1 class="card-title" id="dl-title">Télécharger un fichier</h1>
 
-      <section class="dl-body">
-        <div class="card dl-card">
-          <h1>Télécharger un fichier</h1>
+        @if (loading()) { <p class="text-mut center">Chargement…</p> }
 
-          @if (loading()) { <p class="text-mut">Chargement…</p> }
-          @if (error()) { <div class="error-banner">{{ error() }}</div> }
+        @if (linkError()) {
+          <div class="callout callout--error" role="alert">
+            <app-icon name="error" [size]="12" /> {{ linkError() }}
+          </div>
+        }
 
-          @if (meta(); as m) {
-            <div class="file-summary">
-              <div class="file-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" stroke-width="1.6"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                </svg>
-              </div>
-              <div>
-                <div style="font-weight: 500;">{{ m.originalName }}</div>
-                <div class="text-mut" style="font-size: 12px;">
-                  {{ humanSize(m.sizeBytes) }} · expire le {{ m.expiresAt | date:'medium' }}
-                </div>
-              </div>
+        @if (meta(); as m) {
+          <div class="file-line">
+            <app-icon class="file-line__icon" name="file" [size]="18" />
+            <div class="file-line__meta">
+              <div class="file-line__name" [title]="m.originalName">{{ m.originalName }}</div>
+              <div class="file-line__size">{{ humanSize(m.sizeBytes) }}</div>
             </div>
+          </div>
 
-            <form [formGroup]="form" (ngSubmit)="download()">
-              @if (m.passwordProtected) {
-                <label class="field">
-                  <span>Mot de passe requis</span>
-                  <input type="password" formControlName="password" required autocomplete="current-password" />
-                </label>
-              }
-              <button
-                type="submit"
-                class="btn btn--coral"
-                style="width:100%; margin-top:8px;"
-                [disabled]="downloading() || (m.passwordProtected && form.invalid)">
-                {{ downloading() ? 'Téléchargement…' : 'Télécharger' }}
-              </button>
-            </form>
+          @if (daysLeft() <= 1) {
+            <div class="callout callout--warning">
+              <app-icon name="warning" [size]="12" /> {{ expiryText() }}
+            </div>
+          } @else {
+            <div class="callout callout--info">
+              <app-icon name="info" [size]="12" /> {{ expiryText() }}
+            </div>
           }
-        </div>
-      </section>
 
-      <footer class="dl-footer">
-        <p class="copyright">Copyright DataShare® 2025</p>
-      </footer>
-    </div>
+          @if (downloadError()) {
+            <div class="callout callout--error" role="alert">
+              <app-icon name="error" [size]="12" /> {{ downloadError() }}
+            </div>
+          }
+
+          <form [formGroup]="form" (ngSubmit)="download()">
+            @if (m.passwordProtected) {
+              <div class="field">
+                <label class="field-label" for="dl-password">Mot de passe</label>
+                <input id="dl-password" type="password" formControlName="password" required
+                       autocomplete="off" placeholder="Saisissez le mot de passe..." />
+              </div>
+            }
+            <button type="submit" class="btn btn--primary btn--block"
+                    [disabled]="downloading() || (m.passwordProtected && form.invalid)">
+              <app-icon name="download" [size]="12" /> {{ downloading() ? 'Téléchargement…' : 'Télécharger' }}
+            </button>
+          </form>
+        }
+      </section>
+    </app-public-layout>
   `,
-    changeDetection: ChangeDetectionStrategy.Eager,
-    styles: [`
-    .dl-page { min-height: 100vh; display: flex; flex-direction: column; }
-    .dl-header { padding: 24px 32px; }
-    .dl-body {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .dl-card { width: 100%; max-width: 440px; }
-    .dl-card h1 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-weight: 400;
-      font-size: 26px;
-      margin: 0 0 16px;
-    }
-    .file-summary {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      padding: 12px;
-      background: var(--bg-muted);
-      border-radius: var(--r-md);
-      margin-bottom: 16px;
-    }
-    .file-icon {
-      width: 40px; height: 40px;
-      display: flex; align-items: center; justify-content: center;
-      background: white;
-      border-radius: var(--r-sm);
-    }
-    .dl-footer { padding: 8px 32px 24px; }
-  `]
+  styles: [`
+    .dl-card { max-width: 640px; }
+    .center { text-align: center; }
+  `],
 })
 export class DownloadComponent {
   private readonly route = inject(ActivatedRoute);
@@ -109,7 +81,19 @@ export class DownloadComponent {
   readonly meta = signal<PublicFileMeta | null>(null);
   readonly loading = signal(true);
   readonly downloading = signal(false);
-  readonly error = signal<string | null>(null);
+  readonly linkError = signal<string | null>(null);
+  readonly downloadError = signal<string | null>(null);
+
+  readonly daysLeft = computed(() => {
+    const m = this.meta();
+    return m ? daysUntil(m.expiresAt) : 0;
+  });
+  readonly expiryText = computed(() => {
+    const d = this.daysLeft();
+    if (d === 0) return "Ce fichier expirera aujourd'hui.";
+    if (d === 1) return 'Ce fichier expirera demain.';
+    return `Ce fichier expirera dans ${d} jours.`;
+  });
 
   readonly form = this.fb.nonNullable.group({
     password: ['', [Validators.required]],
@@ -119,10 +103,10 @@ export class DownloadComponent {
     this.api.publicMeta(this.token).subscribe({
       next: m => { this.meta.set(m); this.loading.set(false); },
       error: err => {
-        this.error.set(
-          err.status === 410 ? 'Ce lien a expiré.'
-            : err.status === 404 ? 'Lien invalide ou introuvable.'
-              : 'Erreur lors de la lecture du lien.'
+        this.linkError.set(
+          err.status === 410 ? "Ce fichier n'est plus disponible en téléchargement car il a expiré."
+            : err.status === 404 ? 'Ce lien est invalide ou le fichier a été supprimé.'
+              : 'Impossible de lire ce lien pour le moment.'
         );
         this.loading.set(false);
       },
@@ -131,7 +115,7 @@ export class DownloadComponent {
 
   download(): void {
     this.downloading.set(true);
-    this.error.set(null);
+    this.downloadError.set(null);
     const password = this.meta()?.passwordProtected ? this.form.getRawValue().password : undefined;
     this.api.publicDownload(this.token, password).subscribe({
       next: blob => {
@@ -139,7 +123,7 @@ export class DownloadComponent {
         this.downloading.set(false);
       },
       error: err => {
-        this.error.set(err.status === 403 ? 'Mot de passe invalide.' : 'Téléchargement impossible.');
+        this.downloadError.set(err.status === 403 ? 'Mot de passe invalide.' : 'Téléchargement impossible.');
         this.downloading.set(false);
       },
     });
