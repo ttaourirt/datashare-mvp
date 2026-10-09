@@ -30,11 +30,11 @@
 7. **US03** — email invalide → 400
 8. **US04** — mauvais mot de passe → 401
 
-## Scénarios E2E (Cypress) à implémenter
+## Scénarios E2E (Cypress)
 
-1. **Inscription + upload + partage** — un user crée un compte, upload un fichier, copie le lien, l'ouvre en navigation privée.
-2. **Upload anonyme + téléchargement protégé par mot de passe** — un visiteur envoie un fichier avec mdp, un autre le télécharge après avoir saisi le bon mdp.
-3. **Suppression** — un user supprime un fichier, l'ancien lien renvoie 404.
+1. **Inscription + upload + partage** (`01-register-upload-share.cy.ts`) — un user crée un compte, upload un fichier, copie le lien, l'ouvre en navigation privée.
+2. **Upload anonyme + téléchargement protégé par mot de passe** (`02-anonymous-password-download.cy.ts`) — un visiteur envoie un fichier avec mdp, un autre le télécharge après avoir saisi le bon mdp.
+3. **Suppression** (`03-delete.cy.ts`) — un user supprime un fichier, l'ancien lien renvoie 404.
 
 ## Instructions d'exécution
 
@@ -57,8 +57,11 @@ npm test -- --watch=false --browsers=ChromeHeadless
 ### E2E
 ```bash
 cd frontend
-npm run e2e            # ouvre Cypress
+npm run e2e            # ouvre Cypress (mode interactif)
+npm run e2e:run        # exécution headless (CI)
 ```
+Prérequis : Postgres, back-end (`:8080`) et front-end (`:4200`) démarrés.
+Depuis le terminal intégré de VS Code, lancer avec `env -u ELECTRON_RUN_AS_NODE npm run e2e:run`.
 
 ## Rapport de couverture
 

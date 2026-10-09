@@ -5,8 +5,9 @@ dist/
 .vscode/
 *.tsbuildinfo
 coverage/
-cypress/videos/
-cypress/screenshots/
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+frontend/cypress/downloads/
 
 # --- Java / Spring / Maven ---
 target/
