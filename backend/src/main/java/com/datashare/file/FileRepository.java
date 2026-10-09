@@ -1,6 +1,7 @@
 package com.datashare.file;
 
 import com.datashare.user.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -11,8 +12,10 @@ import java.util.UUID;
 
 public interface FileRepository extends JpaRepository<FileEntity, Long> {
 
+    @EntityGraph(attributePaths = "tags")
     List<FileEntity> findAllByOwnerAndDeletedFalseOrderByUploadedAtDesc(User owner);
 
+    @EntityGraph(attributePaths = "tags")
     @Query("""
            SELECT f FROM FileEntity f
            WHERE f.owner = :owner
