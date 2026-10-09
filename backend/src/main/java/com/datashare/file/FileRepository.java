@@ -13,13 +13,12 @@ import java.util.UUID;
 public interface FileRepository extends JpaRepository<FileEntity, Long> {
 
     @EntityGraph(attributePaths = "tags")
-    List<FileEntity> findAllByOwnerAndDeletedFalseOrderByUploadedAtDesc(User owner);
+    List<FileEntity> findAllByOwnerOrderByUploadedAtDesc(User owner);
 
     @EntityGraph(attributePaths = "tags")
     @Query("""
            SELECT f FROM FileEntity f
            WHERE f.owner = :owner
-             AND f.deleted = false
              AND f.expiresAt > :now
            ORDER BY f.uploadedAt DESC
            """)
@@ -27,7 +26,7 @@ public interface FileRepository extends JpaRepository<FileEntity, Long> {
 
     Optional<FileEntity> findByIdAndOwner(Long id, User owner);
 
-    Optional<FileEntity> findByPublicTokenAndDeletedFalse(UUID publicToken);
+    Optional<FileEntity> findByPublicToken(UUID publicToken);
 
-    List<FileEntity> findAllByDeletedFalseAndExpiresAtBefore(OffsetDateTime cutoff);
+    List<FileEntity> findAllByExpiresAtBefore(OffsetDateTime cutoff);
 }

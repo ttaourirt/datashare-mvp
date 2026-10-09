@@ -9,7 +9,7 @@
 | Path traversal upload | `../../etc/passwd` en filename | `LocalFileStorage.resolve()` valide que le chemin final reste sous `root`. Nom de stockage = UUID, jamais le nom user. |
 | Exécution arbitraire | Upload d'un binaire malveillant | Blocklist extensions : `.exe .bat .cmd .com .cpl .msi .ps1 .sh .vbs .js .jar .scr`. |
 | Accès non autorisé aux fichiers | Deviner un ID de fichier | Endpoints privés = filtre par `owner_id`. Endpoints publics = UUID v4 non prédictible (122 bits). |
-| Fuite de données post-expiration | Fichier resté sur disque | Job `@Scheduled` supprime le blob + soft-delete DB. |
+| Fuite de données post-expiration | Fichier resté sur disque | Job `@Scheduled` quotidien supprime le blob **et** la ligne en BDD. |
 | SQL injection | Requête concaténée | Uniquement Spring Data JPA + JPQL paramétré, jamais de string concat. |
 | CSRF | POST cross-origin | API stateless (JWT en header) → pas de cookie session → pas de vecteur CSRF. |
 | CORS trop laxiste | `Access-Control-Allow-Origin: *` | `SecurityConfig.corsConfigurationSource()` limite à l'origine du front (`datashare.cors.allowed-origins`). |

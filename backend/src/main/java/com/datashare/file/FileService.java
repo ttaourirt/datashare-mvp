@@ -1,5 +1,6 @@
 package com.datashare.file;
 
+import com.datashare.common.BadRequestException;
 import com.datashare.common.ForbiddenException;
 import com.datashare.common.GoneException;
 import com.datashare.common.NotFoundException;
@@ -17,8 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,6 +31,7 @@ import java.util.UUID;
 public class FileService {
 
     private static final Logger log = LoggerFactory.getLogger(FileService.class);
+    private static final int MAX_TAG_LENGTH = 30;
 
     private final FileRepository fileRepository;
     private final TagRepository tagRepository;
@@ -54,7 +60,7 @@ public class FileService {
                              MultipartFile multipart,
                              int expirationDays,
                              String password,
-                             Set<Long> tagIds) throws IOException {
+                             List<String> tagNames) throws IOException {
         uploadPolicy.validate(multipart.getOriginalFilename(), multipart.getSize(), expirationDays, password);
 
         String relativePath;
@@ -62,13 +68,8 @@ public class FileService {
             relativePath = storage.store(in, multipart.getOriginalFilename());
         }
 
-        Set<Tag> resolvedTags = new HashSet<>();
-        if (owner != null && tagIds != null && !tagIds.isEmpty()) {
-            resolvedTags = tagRepository.findAllByIdInAndOwner(tagIds, owner);
-            if (resolvedTags.size() != tagIds.size()) {
-                throw new NotFoundException("One or more tags not found for this user");
-            }
-        }
+        // US07 : un upload anonyme n'a pas de tags
+        Set<Tag> resolvedTags = owner != null ? resolveTags(owner, tagNames) : new HashSet<>();
 
         FileEntity entity = FileEntity.builder()
                 .owner(owner)
@@ -88,17 +89,26 @@ public class FileService {
     @Transactional(readOnly = true)
     public List<FileEntity> history(User owner, boolean includeExpired) {
         return includeExpired
-                ? fileRepository.findAllByOwnerAndDeletedFalseOrderByUploadedAtDesc(owner)
+                ? fileRepository.findAllByOwnerOrderByUploadedAtDesc(owner)
                 : fileRepository.findActiveForOwner(owner, OffsetDateTime.now());
     }
 
-    /** US06 — supprime le fichier (soft-delete DB + delete filesystem). */
+    /** US08 — remplace les tags d'un fichier de l'utilisateur. */
+    @Transactional
+    public FileEntity updateTags(User owner, Long fileId, List<String> tagNames) {
+        FileEntity file = fileRepository.findByIdAndOwner(fileId, owner)
+                .orElseThrow(() -> new NotFoundException("File " + fileId + " not found"));
+        file.getTags().clear();
+        file.getTags().addAll(resolveTags(owner, tagNames));
+        return fileRepository.save(file);
+    }
+
+    /** US06 — suppression irréversible : ligne en BDD (métadonnées + liens tags) puis blob. */
     @Transactional
     public void delete(User owner, Long fileId) throws IOException {
         FileEntity file = fileRepository.findByIdAndOwner(fileId, owner)
                 .orElseThrow(() -> new NotFoundException("File " + fileId + " not found"));
-        file.setDeleted(true);
-        fileRepository.save(file);
+        fileRepository.delete(file);
         try {
             storage.delete(file.getStoragePath());
         } catch (IOException ex) {
@@ -109,7 +119,7 @@ public class FileService {
     /** US02 — meta pour lecteur du lien public. */
     @Transactional(readOnly = true)
     public FileEntity findPublicByToken(UUID token) {
-        FileEntity file = fileRepository.findByPublicTokenAndDeletedFalse(token)
+        FileEntity file = fileRepository.findByPublicToken(token)
                 .orElseThrow(() -> new NotFoundException("Link not found"));
         if (file.isExpired()) throw new GoneException("Link expired");
         return file;
@@ -128,5 +138,29 @@ public class FileService {
 
     public InputStream openStream(FileEntity file) throws IOException {
         return storage.open(file.getStoragePath());
+    }
+
+    /**
+     * US08 — tags en texte libre : doublons ignorés (casse comprise),
+     * tags inexistants créés pour l'utilisateur.
+     */
+    private Set<Tag> resolveTags(User owner, Collection<String> names) {
+        Map<String, String> unique = new LinkedHashMap<>();
+        if (names != null) {
+            for (String raw : names) {
+                String name = raw == null ? "" : raw.trim();
+                if (name.isEmpty()) continue;
+                if (name.length() > MAX_TAG_LENGTH) {
+                    throw new BadRequestException("Tag must be at most " + MAX_TAG_LENGTH + " characters");
+                }
+                unique.putIfAbsent(name.toLowerCase(Locale.ROOT), name);
+            }
+        }
+        Set<Tag> tags = new HashSet<>();
+        for (String name : unique.values()) {
+            tags.add(tagRepository.findByOwnerAndNameIgnoreCase(owner, name)
+                    .orElseGet(() -> tagRepository.save(Tag.builder().owner(owner).name(name).build())));
+        }
+        return tags;
     }
 }

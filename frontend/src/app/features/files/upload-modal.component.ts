@@ -1,11 +1,12 @@
 import { Component, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FileApi, FileResponse } from '../../core/api/file.api';
+import { TagInputComponent } from '../../shared/tag-input.component';
 
 @Component({
   selector: 'app-upload-modal',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TagInputComponent],
   template: `
     <div class="modal-backdrop" (click)="close.emit()">
       <div class="modal" style="position: relative;" (click)="$event.stopPropagation()">
@@ -34,12 +35,23 @@ import { FileApi, FileResponse } from '../../core/api/file.api';
 
           <label class="field">
             <span>Mot de passe (facultatif, min. 6 caractères)</span>
-            <input type="password" formControlName="password" minlength="6" autocomplete="new-password" />
+            <input type="password" formControlName="password" autocomplete="new-password"
+                   [attr.aria-invalid]="passwordTooShort() ? true : null"
+                   [attr.aria-describedby]="passwordTooShort() ? 'upload-password-error' : null" />
+            @if (passwordTooShort()) {
+              <p class="field-error" role="alert" id="upload-password-error">
+                Le mot de passe doit contenir au moins 6 caractères.
+              </p>
+            }
           </label>
+
+          @if (!anonymous()) {
+            <app-tag-input inputId="upload-tags" [(tags)]="tags" />
+          }
 
           <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;">
             <button type="button" class="btn btn--ghost" (click)="close.emit()">Annuler</button>
-            <button type="submit" class="btn btn--coral" [disabled]="!file() || uploading()">
+            <button type="submit" class="btn btn--coral" [disabled]="!file() || form.invalid || uploading()">
               {{ uploading() ? 'Envoi…' : 'Envoyer' }}
             </button>
           </div>
@@ -57,13 +69,19 @@ export class UploadModalComponent {
   readonly uploaded = output<FileResponse>();
 
   readonly file = signal<File | null>(null);
+  readonly tags = signal<string[]>([]);
   readonly uploading = signal(false);
   readonly error = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
     expiresInDays: [7, [Validators.required, Validators.min(1), Validators.max(7)]],
-    password: [''],
+    password: ['', [Validators.minLength(6)]],
   });
+
+  passwordTooShort(): boolean {
+    const ctrl = this.form.controls.password;
+    return ctrl.dirty && ctrl.hasError('minlength');
+  }
 
   onFile(ev: Event): void {
     const input = ev.target as HTMLInputElement;
@@ -72,12 +90,12 @@ export class UploadModalComponent {
 
   submit(): void {
     const f = this.file();
-    if (!f) return;
+    if (!f || this.form.invalid) return;
     this.uploading.set(true);
     this.error.set(null);
 
     const { expiresInDays, password } = this.form.getRawValue();
-    const opts = { expiresInDays, password: password || undefined };
+    const opts = { expiresInDays, password: password || undefined, tags: this.tags() };
     const req = this.anonymous()
       ? this.api.uploadAnonymous(f, opts)
       : this.api.upload(f, opts);

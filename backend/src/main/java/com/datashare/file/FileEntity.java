@@ -48,9 +48,6 @@ public class FileEntity {
     @Column(name = "expires_at", nullable = false)
     private OffsetDateTime expiresAt;
 
-    @Column(nullable = false)
-    private boolean deleted;
-
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "file_tags",

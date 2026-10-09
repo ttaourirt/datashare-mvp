@@ -27,7 +27,6 @@ erDiagram
         string download_password_hash "NULL si pas protégé"
         timestamp uploaded_at
         timestamp expires_at
-        boolean deleted "soft delete pour audit"
     }
 
     TAG {
@@ -70,7 +69,6 @@ Index : `idx_users_email` (déjà via UNIQUE).
 | `download_password_hash` | VARCHAR(72) | NULL |
 | `uploaded_at` | TIMESTAMPTZ | NOT NULL DEFAULT now() |
 | `expires_at` | TIMESTAMPTZ | NOT NULL, CHECK expires_at > uploaded_at |
-| `deleted` | BOOLEAN | NOT NULL DEFAULT false |
 
 Index :
 - `idx_files_owner` sur `owner_id`
@@ -105,15 +103,15 @@ Table de jointure many-to-many.
 | JWT stateless (US04) | Pas de table token — payload JWT contient `userId` |
 | Expiration 7j max (US01) | Check applicatif + `expires_at` calculé au serveur |
 | Fichier lié à user (US01) | `files.owner_id` NOT NULL en mode connecté |
-| Historique (US05) | Requête `SELECT * FROM files WHERE owner_id=? AND deleted=false` |
-| Suppression physique (US06) | `deleted=true` + delete filesystem (soft delete pour audit) |
+| Historique (US05) | Requête `SELECT * FROM files WHERE owner_id=? ORDER BY uploaded_at DESC` (tags chargés en une requête via `@EntityGraph`) |
+| Suppression physique (US06) | `DELETE` de la ligne `files` (cascade sur `file_tags`) + suppression du blob |
 | Mot de passe fichier (US09) | `download_password_hash` BCrypt |
-| Purge auto (US10) | Job `@Scheduled(cron="0 0 3 * * *")` → WHERE expires_at < now() |
-| Tags 0..N (US08) | Table de jointure `file_tags` |
+| Purge auto (US10) | Job `@Scheduled(cron="0 0 3 * * *")` → blob + ligne supprimés WHERE expires_at < now() |
+| Tags 0..N (US08) | Table de jointure `file_tags` ; tags saisis en texte libre, créés à la volée, doublons ignorés (casse comprise) |
 
 ## Choix de conception
 
 - **UUID pour `public_token`** : non prédictible (spec US02) — 122 bits d'entropie, impossible à brute-forcer.
-- **Soft delete** sur `files` (`deleted` booléen) : permet audit et debug après incident, purge physique par le cron.
+- **Suppression définitive** (migration V3) : les specs US01/US06/US10 exigent la suppression du fichier *et* de ses métadonnées. Un fichier expiré reste visible (onglet « Expiré ») jusqu'au passage de la purge quotidienne.
 - **`owner_id` NULL** possible : ouvre la porte à US07 (upload anonyme) sans refonte du schéma.
-- **`download_events`** séparé de `files` : simplifie l'audit, permet du reporting agrégé (nb DL, taux d'échec password).
+- **Pas de table `download_events`** (supprimée en V2) : la traçabilité des téléchargements n'est pas demandée dans le MVP.

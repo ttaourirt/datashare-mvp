@@ -9,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -20,6 +21,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -42,6 +46,9 @@ class FileFlowIntegrationTest {
 
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
+    @Autowired FileRepository fileRepository;
+    @Autowired FileExpirationJob expirationJob;
+    @Autowired JdbcTemplate jdbc;
 
     @Test
     void upload_thenList_thenDownload_thenDelete() throws Exception {
@@ -84,7 +91,78 @@ class FileFlowIntegrationTest {
         mvc.perform(delete("/api/v1/files/" + fileId).header("Authorization", "Bearer " + token))
                 .andExpect(status().isNoContent());
 
-        // Lien devient introuvable
+        // Lien devient introuvable et les métadonnées sont supprimées
+        mvc.perform(get("/api/v1/public/files/" + publicToken + "/meta"))
+                .andExpect(status().isNotFound());
+        assertThat(fileRepository.findById(fileId)).isEmpty();
+    }
+
+    @Test
+    void upload_withTags_thenReplaceTags() throws Exception {
+        String token = registerAndGetToken("tags@example.com");
+        MockMultipartFile file = new MockMultipartFile("file", "tagged.txt", "text/plain", "tags".getBytes());
+
+        // US08 — doublons ignorés (casse comprise), tags créés à la volée
+        String uploadJson = mvc.perform(multipart("/api/v1/files")
+                        .file(file)
+                        .param("tags", "Projet", "projet", "perso")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tags", hasSize(2)))
+                .andExpect(jsonPath("$.tags[*].name", containsInAnyOrder("Projet", "perso")))
+                .andReturn().getResponse().getContentAsString();
+        long fileId = json.readTree(uploadJson).get("id").asLong();
+
+        // Tag > 30 caractères → 400
+        mvc.perform(put("/api/v1/files/" + fileId + "/tags")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tags\":[\"" + "x".repeat(31) + "\"]}"))
+                .andExpect(status().isBadRequest());
+
+        // Remplacement des tags
+        mvc.perform(put("/api/v1/files/" + fileId + "/tags")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tags\":[\"client\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tags[*].name", containsInAnyOrder("client")));
+
+        mvc.perform(get("/api/v1/files").header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$[0].tags[*].name", containsInAnyOrder("client")));
+
+        // Un autre utilisateur ne peut pas modifier ces tags
+        String other = registerAndGetToken("intruder@example.com");
+        mvc.perform(put("/api/v1/files/" + fileId + "/tags")
+                        .header("Authorization", "Bearer " + other)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tags\":[\"hack\"]}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void expirationJob_purgesFileAndMetadata() throws Exception {
+        String token = registerAndGetToken("purge@example.com");
+        MockMultipartFile file = new MockMultipartFile("file", "old.txt", "text/plain", "old".getBytes());
+        String uploadJson = mvc.perform(multipart("/api/v1/files")
+                        .file(file)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long fileId = json.readTree(uploadJson).get("id").asLong();
+        String publicToken = json.readTree(uploadJson).get("publicToken").asText();
+
+        // On simule un fichier envoyé il y a 8 jours, expiré depuis hier
+        jdbc.update("UPDATE files SET uploaded_at = now() - interval '8 days', expires_at = now() - interval '1 day' WHERE id = ?",
+                fileId);
+
+        // Avant purge : lien expiré → 410
+        mvc.perform(get("/api/v1/public/files/" + publicToken + "/meta"))
+                .andExpect(status().isGone());
+
+        expirationJob.purgeExpired();
+
+        assertThat(fileRepository.findById(fileId)).isEmpty();
         mvc.perform(get("/api/v1/public/files/" + publicToken + "/meta"))
                 .andExpect(status().isNotFound());
     }

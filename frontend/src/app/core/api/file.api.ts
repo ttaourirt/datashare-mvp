@@ -30,7 +30,7 @@ export interface PublicFileMeta {
 export interface UploadOptions {
   expiresInDays?: number;
   password?: string;
-  tagIds?: number[];
+  tags?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -52,6 +52,10 @@ export class FileApi {
     return this.http.post<FileResponse>(`${this.api}/public/files`, fd);
   }
 
+  updateTags(id: number, tags: string[]): Observable<FileResponse> {
+    return this.http.put<FileResponse>(`${this.api}/files/${id}/tags`, { tags });
+  }
+
   remove(id: number): Observable<void> {
     return this.http.delete<void>(`${this.api}/files/${id}`);
   }
@@ -69,7 +73,7 @@ export class FileApi {
     fd.append('file', file);
     if (opts.expiresInDays) fd.append('expiresInDays', String(opts.expiresInDays));
     if (opts.password) fd.append('password', opts.password);
-    (opts.tagIds ?? []).forEach(id => fd.append('tagIds', String(id)));
+    (opts.tags ?? []).forEach(tag => fd.append('tags', tag));
     return fd;
   }
 }

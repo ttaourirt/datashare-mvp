@@ -107,18 +107,18 @@ paths:
                 password:
                   type: string
                   minLength: 6
-                tagIds:
+                tags:
                   type: array
-                  items: { type: integer }
+                  description: US08 — noms libres (max 30 car.), créés si absents, doublons ignorés
+                  items: { type: string, maxLength: 30 }
       responses:
         '201':
           description: Fichier créé
           content:
             application/json:
               schema: { $ref: '#/components/schemas/FileResponse' }
-        '400': { $ref: '#/components/responses/ValidationError' }
-        '413': { description: Fichier trop volumineux (> 1 GB) }
-        '415': { description: Type de fichier interdit }
+        '400': { description: "Validation : fichier vide ou > 1 GB, extension interdite, expiration hors 1-7 j, mot de passe < 6 car., tag > 30 car." }
+        '401': { description: Non authentifié }
 
   /files/{id}:
     delete:
@@ -130,9 +130,37 @@ paths:
           required: true
           schema: { type: integer }
       responses:
-        '204': { description: Supprimé }
-        '403': { description: Pas propriétaire }
-        '404': { description: Introuvable }
+        '204': { description: Supprimé définitivement (blob + métadonnées) }
+        '404': { description: Introuvable ou n'appartient pas à l'utilisateur }
+
+  /files/{id}/tags:
+    put:
+      tags: [Files]
+      summary: US08 — Remplacer les tags d'un fichier
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tags]
+              properties:
+                tags:
+                  type: array
+                  items: { type: string, maxLength: 30 }
+      responses:
+        '200':
+          description: Fichier avec ses nouveaux tags
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FileResponse' }
+        '400': { description: Tag vide ou > 30 caractères }
+        '404': { description: Introuvable ou n'appartient pas à l'utilisateur }
 
   /tags:
     get:
@@ -160,9 +188,49 @@ paths:
                 name: { type: string, maxLength: 30 }
       responses:
         '201':
+          description: Tag créé
           content:
             application/json:
               schema: { $ref: '#/components/schemas/TagResponse' }
+        '409': { description: Tag déjà existant }
+
+  /tags/{id}:
+    delete:
+      tags: [Tags]
+      summary: Supprimer un tag (retiré de tous les fichiers)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: Supprimé }
+        '404': { description: Introuvable }
+
+  # === Upload anonyme (US07) ===
+  /public/files:
+    post:
+      tags: [Public]
+      summary: US07 — Upload anonyme (sans compte, sans tags)
+      security: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                expiresInDays: { type: integer, minimum: 1, maximum: 7, default: 7 }
+                password: { type: string, minLength: 6 }
+      responses:
+        '201':
+          description: Fichier créé — le lien est /d/{publicToken}
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FileResponse' }
+        '400': { description: Validation (mêmes règles que US01) }
 
   # === Public (US02) ===
   /public/files/{token}/meta:

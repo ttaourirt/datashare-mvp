@@ -5,13 +5,14 @@ import { fromEvent } from 'rxjs';
 import { FileApi, FileResponse } from '../../core/api/file.api';
 import { UploadModalComponent } from './upload-modal.component';
 import { formatBytes } from '../../shared/format';
+import { TagInputComponent } from '../../shared/tag-input.component';
 
 type Filter = 'all' | 'active' | 'expired';
 
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, DatePipe, UploadModalComponent],
+  imports: [CommonModule, DatePipe, UploadModalComponent, TagInputComponent],
   template: `
     <div class="history">
       <h1>Mes fichiers</h1>
@@ -20,16 +21,31 @@ type Filter = 'all' | 'active' | 'expired';
         <button
           role="tab"
           [class.active]="filter() === 'all'"
+          [attr.aria-selected]="filter() === 'all'"
           (click)="filter.set('all')">Tout</button>
         <button
           role="tab"
           [class.active]="filter() === 'active'"
+          [attr.aria-selected]="filter() === 'active'"
           (click)="filter.set('active')">Actifs</button>
         <button
           role="tab"
           [class.active]="filter() === 'expired'"
+          [attr.aria-selected]="filter() === 'expired'"
           (click)="filter.set('expired')">Expiré</button>
       </div>
+
+      @if (allTags().length > 0) {
+        <label class="tag-filter">
+          <span>Filtrer par tag</span>
+          <select class="input" [value]="tagFilter() ?? ''" (change)="setTagFilter($any($event.target).value)">
+            <option value="">Tous les tags</option>
+            @for (t of allTags(); track t) {
+              <option [value]="t">{{ t }}</option>
+            }
+          </select>
+        </label>
+      }
 
       <div class="files-card">
         @if (loading()) {
@@ -56,11 +72,22 @@ type Filter = 'all' | 'active' | 'expired';
                       <span class="lock" title="Protégé par mot de passe">🔒</span>
                     }
                   </div>
-                  <div class="file-sub text-mut">{{ statusLabel(f) }} · {{ humanSize(f.sizeBytes) }}</div>
+                  <div class="file-sub text-mut">
+                    {{ statusLabel(f) }} · {{ humanSize(f.sizeBytes) }}
+                    · Envoyé le {{ f.uploadedAt | date:'dd/MM/yyyy HH:mm' }}
+                    · Expire le {{ f.expiresAt | date:'dd/MM/yyyy HH:mm' }}
+                  </div>
+                  @if (f.tags.length > 0) {
+                    <div class="file-tags">
+                      @for (t of f.tags; track t.id) { <span class="tag-chip">{{ t.name }}</span> }
+                    </div>
+                  }
                 </div>
 
                 <div class="file-actions">
                   @if (!f.expired) {
+                    <button class="btn btn--ghost btn--sm" (click)="startEditTags(f)"
+                            [attr.aria-expanded]="editingId() === f.id">Tags</button>
                     <button class="btn btn--danger btn--sm" (click)="remove(f)">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                            stroke="currentColor" stroke-width="2"
@@ -77,6 +104,16 @@ type Filter = 'all' | 'active' | 'expired';
                     <span class="expired-msg text-mut">Ce fichier a expiré, il n'est plus stocké chez vous.</span>
                   }
                 </div>
+
+                @if (editingId() === f.id) {
+                  <div class="tags-editor">
+                    <app-tag-input [inputId]="'tags-' + f.id" label="Tags du fichier" [(tags)]="editTags" />
+                    <div class="tags-editor__actions">
+                      <button class="btn btn--ghost btn--sm" (click)="editingId.set(null)">Annuler</button>
+                      <button class="btn btn--dark btn--sm" (click)="saveTags(f)">Enregistrer</button>
+                    </div>
+                  </div>
+                }
               </li>
             }
           </ul>
@@ -107,6 +144,7 @@ type Filter = 'all' | 'active' | 'expired';
     .file-row {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 14px;
       padding: 14px 18px;
       border-bottom: 1px solid var(--border);
@@ -120,7 +158,7 @@ type Filter = 'all' | 'active' | 'expired';
       color: var(--text);
       flex-shrink: 0;
     }
-    .file-meta { flex: 1; min-width: 0; }
+    .file-meta { flex: 1 1 0; min-width: 0; }
     .file-name {
       display: flex; align-items: center; gap: 8px;
       font-weight: 500;
@@ -137,8 +175,13 @@ type Filter = 'all' | 'active' | 'expired';
       flex-shrink: 0;
     }
     .expired-msg { font-size: 12px; text-align: right; }
+    .file-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .tag-filter { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-size: 13px; font-weight: 500; }
+    .tag-filter select { width: auto; min-width: 180px; padding: 6px 12px; }
+    .tags-editor { flex-basis: 100%; padding: 4px 0 0 50px; }
+    .tags-editor__actions { display: flex; justify-content: flex-end; gap: 8px; }
     @media (max-width: 700px) {
-      .file-row { flex-wrap: wrap; }
+      .tags-editor { padding-left: 0; }
       .file-actions { width: 100%; justify-content: flex-end; }
     }
   `],
@@ -149,16 +192,24 @@ export class HistoryComponent {
 
   protected readonly files = signal<FileResponse[]>([]);
   protected readonly loading = signal(true);
-  protected readonly filter = signal<Filter>('all');
+  // US06 — seuls les fichiers non expirés sont affichés par défaut
+  protected readonly filter = signal<Filter>('active');
+  protected readonly tagFilter = signal<string | null>(null);
+  protected readonly editingId = signal<number | null>(null);
+  protected readonly editTags = signal<string[]>([]);
   protected readonly uploadOpen = signal(false);
 
   protected readonly filtered = computed(() => {
     const all = this.files();
     const f = this.filter();
-    if (f === 'active') return all.filter(x => !x.expired);
-    if (f === 'expired') return all.filter(x => x.expired);
-    return all;
+    const tag = this.tagFilter();
+    return all
+      .filter(x => f === 'all' || (f === 'active' ? !x.expired : x.expired))
+      .filter(x => !tag || x.tags.some(t => t.name === tag));
   });
+
+  protected readonly allTags = computed(() =>
+    [...new Set(this.files().flatMap(f => f.tags.map(t => t.name)))].sort((a, b) => a.localeCompare(b)));
 
   constructor() {
     // Ouvrir le modal quand la topbar clique "Ajouter des fichiers"
@@ -176,6 +227,22 @@ export class HistoryComponent {
   remove(f: FileResponse): void {
     if (!confirm(`Supprimer "${f.originalName}" ? Action irréversible.`)) return;
     this.api.remove(f.id).subscribe(() => this.refresh());
+  }
+
+  setTagFilter(value: string): void {
+    this.tagFilter.set(value || null);
+  }
+
+  startEditTags(f: FileResponse): void {
+    this.editTags.set(f.tags.map(t => t.name));
+    this.editingId.set(f.id);
+  }
+
+  saveTags(f: FileResponse): void {
+    this.api.updateTags(f.id, this.editTags()).subscribe(updated => {
+      this.files.update(list => list.map(x => (x.id === updated.id ? updated : x)));
+      this.editingId.set(null);
+    });
   }
 
   humanSize = formatBytes;

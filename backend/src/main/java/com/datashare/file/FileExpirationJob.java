@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * US10 — purge quotidienne des fichiers expirés.
- * Supprime le blob physique puis marque `deleted=true` en BDD.
+ * Supprime le blob physique puis la ligne en BDD (fichier + métadonnées).
  */
 @Component
 public class FileExpirationJob {
@@ -33,7 +33,7 @@ public class FileExpirationJob {
     @Transactional
     public void purgeExpired() {
         OffsetDateTime now = OffsetDateTime.now();
-        List<FileEntity> expired = fileRepository.findAllByDeletedFalseAndExpiresAtBefore(now);
+        List<FileEntity> expired = fileRepository.findAllByExpiresAtBefore(now);
         int purged = 0;
         for (FileEntity file : expired) {
             try {
@@ -41,10 +41,9 @@ public class FileExpirationJob {
             } catch (IOException ex) {
                 log.warn("Failed to delete blob {}: {}", file.getStoragePath(), ex.getMessage());
             }
-            file.setDeleted(true);
             purged++;
         }
-        fileRepository.saveAll(expired);
+        fileRepository.deleteAll(expired);
         if (purged > 0) log.info("Expired {} files at {}", purged, now);
     }
 }

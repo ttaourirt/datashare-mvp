@@ -17,10 +17,11 @@ describe('Inscription + upload + partage', () => {
     cy.contains('button', 'Se connecter').click();
     cy.location('pathname').should('eq', '/files');
 
-    // Upload
+    // Upload avec un tag (US01 + US08)
     cy.contains('button', 'Ajouter des fichiers').click();
+    cy.get('.modal #upload-tags').type('projet{enter}');
     cy.uploadSample();
-    cy.contains('.file-row', 'sample.txt').should('be.visible');
+    cy.contains('.file-row', 'sample.txt').should('be.visible').find('.tag-chip').should('contain', 'projet');
 
     // Ouverture du lien public sans session (équivalent navigation privée)
     cy.contains('.file-row', 'sample.txt')
