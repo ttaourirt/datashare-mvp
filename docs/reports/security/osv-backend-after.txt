@@ -1,0 +1,13 @@
+OSV-Scanner 2.6.0 — backend/pom.xml — Spring Boot 3.5.16 + patchs — 2026-10-09
+
+End status: 30 dirs visited, 82 inodes visited, 1 Extract calls, 1.454459ms elapsed, 1.455ms wall time
+Filtered 14 local/unscannable package/s from the scan.
+Warning: enricher transitivedependency/pomxml may be risky when run on untrusted artifacts. Please ensure you trust the source code and artifacts.
+Total 1 package affected by 2 known vulnerabilities (2 Critical, 0 High, 0 Medium, 0 Low, 0 Unknown) from 1 ecosystem.
+2 vulnerabilities can be fixed.
++-------------------------------------+------+-----------+-----------------------------------+---------+---------------+---------+
+| OSV URL                             | CVSS | ECOSYSTEM | PACKAGE                           | VERSION | FIXED VERSION | SOURCE  |
++-------------------------------------+------+-----------+-----------------------------------+---------+---------------+---------+
+| https://osv.dev/GHSA-j9f9-w8pj-32f8 | 9.8  | Maven     | org.springframework:spring-webmvc | 6.2.19  | 7.0.9         | pom.xml |
+| https://osv.dev/GHSA-pc63-qcmh-9cmg | 9.8  | Maven     | org.springframework:spring-webmvc | 6.2.19  | 7.0.9         | pom.xml |
++-------------------------------------+------+-----------+-----------------------------------+---------+---------------+---------+
