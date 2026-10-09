@@ -12,7 +12,7 @@ declare global {
 }
 
 Cypress.Commands.add('registerAndLogin', (email: string, password: string) => {
-  cy.request('POST', `${Cypress.env('apiUrl')}/auth/register`, { email, password });
+  cy.request('POST', `${Cypress.expose('apiUrl')}/auth/register`, { email, password });
   cy.visit('/login');
   cy.get('input[formcontrolname="email"]').type(email);
   cy.get('input[formcontrolname="password"]').type(password, { log: false });

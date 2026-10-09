@@ -4,7 +4,7 @@ Prototype de plateforme de transfert sécurisé de fichiers.
 
 ## Stack
 
-Spring Boot 3 (Java 21) · Angular 18 · PostgreSQL 16 · JWT
+Spring Boot 3.5 (Java 21) · Angular 22 · PostgreSQL 16 · JWT
 
 ## Documentation
 
@@ -17,9 +17,9 @@ Spring Boot 3 (Java 21) · Angular 18 · PostgreSQL 16 · JWT
 
 - Java 21 (`java -version`)
 - Maven 3.9+ (`mvn -v`)
-- Node 20+ et npm (`node -v`)
+- Node 22.22+ ou 24.15+ et npm (`node -v`)
 - Docker Desktop (pour Postgres local)
-- Angular CLI : `npm i -g @angular/cli@18`
+- Angular CLI (optionnel, `npx ng` suffit) : `npm i -g @angular/cli@22`
 
 ## Démarrage local
 

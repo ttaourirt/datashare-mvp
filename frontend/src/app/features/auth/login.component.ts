@@ -1,13 +1,12 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
-  selector: 'app-login',
-  standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
-  template: `
+    selector: 'app-login',
+    imports: [ReactiveFormsModule, RouterLink],
+    template: `
     <div class="auth-page gradient-coral">
       <header class="auth-header">
         <a class="logo" routerLink="/">DataShare</a>
@@ -50,7 +49,8 @@ import { AuthService } from '../../core/auth/auth.service';
       </footer>
     </div>
   `,
-  styles: [`
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styles: [`
     .auth-page { min-height: 100vh; display: flex; flex-direction: column; }
     .auth-header { padding: 24px 32px; }
     .auth-body {
@@ -70,7 +70,7 @@ import { AuthService } from '../../core/auth/auth.service';
     .auth-alt { margin-top: 20px; font-size: 14px; text-align: center; }
     .auth-alt a { font-weight: 500; }
     .auth-footer { padding: 8px 32px 24px; }
-  `],
+  `]
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);

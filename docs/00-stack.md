@@ -4,16 +4,16 @@
 
 | Couche | Technologie | Version |
 |---|---|---|
-| Back-end | Spring Boot | 3.3.x (Java 21 LTS) |
+| Back-end | Spring Boot | 3.5.x (Java 21 LTS) |
 | Build back | Maven | 3.9.x |
-| Front-end | Angular | 18 (standalone components) |
+| Front-end | Angular | 22 (standalone components, signals) |
 | Base de données | PostgreSQL | 16 |
 | Migrations SQL | Flyway | 10.x |
 | Auth | JWT (jjwt) | 0.12.x |
 | Stockage fichiers | Système de fichiers local (`./storage/uploads`) | — |
 | API doc | SpringDoc OpenAPI | 2.5.x → Swagger UI auto |
 | Tests back | JUnit 5 + Mockito + Testcontainers | — |
-| Tests front | Karma/Jasmine (unit) + Cypress (E2E) | — |
+| Tests front | Vitest (unit) + Cypress 16 (E2E) | — |
 | Infra dev | Docker Compose (Postgres) | — |
 
 ## Justifications
@@ -24,7 +24,7 @@
 - Spring Boot 3.x = Jakarta EE 10, Native Image possible.
 - Écosystème mature : Spring Security (auth), Spring Data JPA (persistence), Actuator (monitoring).
 
-### Angular 18
+### Angular 22
 - Framework opinionated → structure prévisible dans un contexte d'équipe.
 - Signals (nouveau state management natif) → moins de RxJS pour du CRUD simple.
 - Angular CLI génère components/services/guards/interceptors sans boilerplate.
@@ -50,6 +50,6 @@
 
 - **Conventional Commits** (`feat:`, `fix:`, `chore:`, `docs:`, `test:`) → changelog auto possible.
 - **CI GitHub Actions** : build + tests à chaque push.
-- **Coverage** : JaCoCo (back), Karma coverage (front). Objectif 70 %.
+- **Coverage** : JaCoCo (back), Vitest/v8 (front). Objectif 70 %.
 - **Lint** : Checkstyle (back), ESLint (front).
 - **k6** pour les tests de charge sur `/api/files/upload`.

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { fromEvent } from 'rxjs';
@@ -10,10 +10,9 @@ import { TagInputComponent } from '../../shared/tag-input.component';
 type Filter = 'all' | 'active' | 'expired';
 
 @Component({
-  selector: 'app-history',
-  standalone: true,
-  imports: [CommonModule, DatePipe, UploadModalComponent, TagInputComponent],
-  template: `
+    selector: 'app-history',
+    imports: [CommonModule, DatePipe, UploadModalComponent, TagInputComponent],
+    template: `
     <div class="history">
       <h1>Mes fichiers</h1>
 
@@ -125,7 +124,8 @@ type Filter = 'all' | 'active' | 'expired';
       }
     </div>
   `,
-  styles: [`
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styles: [`
     .history { max-width: 1000px; margin: 0 auto; }
     h1 {
       font-family: 'Instrument Serif', Georgia, serif;
@@ -184,7 +184,7 @@ type Filter = 'all' | 'active' | 'expired';
       .tags-editor { padding-left: 0; }
       .file-actions { width: 100%; justify-content: flex-end; }
     }
-  `],
+  `]
 })
 export class HistoryComponent {
   private readonly api = inject(FileApi);

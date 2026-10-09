@@ -7,7 +7,7 @@ export default defineConfig({
     supportFile: 'cypress/support/e2e.ts',
     video: false,
   },
-  env: {
+  expose: {
     apiUrl: 'http://localhost:8080/api/v1',
   },
 });

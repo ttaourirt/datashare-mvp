@@ -1,13 +1,12 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+
 import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 
 @Component({
-  selector: 'app-shell',
-  standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
-  template: `
+    selector: 'app-shell',
+    imports: [RouterLink, RouterLinkActive, RouterOutlet],
+    template: `
     <div class="shell">
       <!-- Sidebar desktop / Drawer mobile -->
       <aside
@@ -93,7 +92,8 @@ import { AuthService } from '../core/auth/auth.service';
       </main>
     </div>
   `,
-  styles: [`
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styles: [`
     .shell { display: flex; min-height: 100vh; }
     .sidebar {
       width: var(--sidebar-w);
@@ -208,7 +208,7 @@ import { AuthService } from '../core/auth/auth.service';
       }
       .content { padding: 16px; }
     }
-  `],
+  `]
 })
 export class ShellComponent {
   private readonly auth = inject(AuthService);

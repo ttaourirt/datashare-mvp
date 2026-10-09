@@ -6,13 +6,13 @@
 |---|---|---|---|
 | Unit back | JUnit 5 + Mockito + AssertJ | `backend/src/test/java/**/*Test.java` (hors `*IntegrationTest`) | Services + policies isolés |
 | Intégration back | @SpringBootTest + MockMvc + Testcontainers (Postgres 16) | `backend/src/test/java/**/*IntegrationTest.java` | Flux HTTP réels de bout en bout, vraie BDD |
-| Unit front | Karma + Jasmine + `HttpTestingController` | `frontend/src/**/*.spec.ts` | Services / stores / guards |
+| Unit front | Vitest (builder `@angular/build:unit-test`, jsdom) + `HttpTestingController` | `frontend/src/**/*.spec.ts` | Services / stores / guards |
 | E2E | Cypress | `frontend/cypress/e2e/*.cy.ts` | 2-3 scénarios critiques |
 
 ## Critères d'acceptation
 
 - Tous les tests **passent en CI** avant merge sur `main`.
-- **Couverture ≥ 70 %** (JaCoCo pour le back, Karma coverage pour le front).
+- **Couverture ≥ 70 %** (JaCoCo pour le back, couverture v8 de Vitest pour le front).
 - Chaque US du MVP possède au moins **un test unitaire** et **un test d'intégration ou E2E**.
 - Toute correction de bug est accompagnée d'un test qui échoue avant la correction.
 
@@ -59,10 +59,9 @@ open target/site/jacoco/index.html
 ### Front unit
 ```bash
 cd frontend
-npm test               # ouvre Karma en watch — génère coverage/
-open coverage/index.html
-# ou pour CI :
-npm test -- --watch=false --browsers=ChromeHeadless
+npm test                       # Vitest en watch + couverture
+npm test -- --watch=false      # exécution unique (CI)
+open coverage/datashare/index.html
 ```
 
 ### E2E
@@ -77,6 +76,6 @@ Depuis le terminal intégré de VS Code, lancer avec `env -u ELECTRON_RUN_AS_NOD
 ## Rapport de couverture
 
 - **Back** : rapport HTML sous `backend/target/site/jacoco/index.html` (après `mvn verify`).
-- **Front** : rapport HTML sous `frontend/coverage/index.html` (après `npm test`).
+- **Front** : rapport HTML sous `frontend/coverage/datashare/index.html` (après `npm test`).
 
 Une capture d'écran de chaque rapport doit être annexée à la livraison finale.

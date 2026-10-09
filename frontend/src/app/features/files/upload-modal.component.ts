@@ -1,13 +1,13 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FileApi, FileResponse } from '../../core/api/file.api';
 import { TagInputComponent } from '../../shared/tag-input.component';
 
 @Component({
-  selector: 'app-upload-modal',
-  standalone: true,
-  imports: [ReactiveFormsModule, TagInputComponent],
-  template: `
+    selector: 'app-upload-modal',
+    imports: [ReactiveFormsModule, TagInputComponent],
+    changeDetection: ChangeDetectionStrategy.Eager,
+    template: `
     <div class="modal-backdrop" (click)="close.emit()">
       <div class="modal" style="position: relative;" (click)="$event.stopPropagation()">
         <button class="modal-close" aria-label="Fermer" (click)="close.emit()">×</button>
@@ -58,7 +58,7 @@ import { TagInputComponent } from '../../shared/tag-input.component';
         </form>
       </div>
     </div>
-  `,
+  `
 })
 export class UploadModalComponent {
   private readonly fb = inject(FormBuilder);

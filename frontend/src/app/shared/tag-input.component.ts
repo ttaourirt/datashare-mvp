@@ -1,4 +1,4 @@
-import { Component, input, model, signal } from '@angular/core';
+import { Component, input, model, signal, ChangeDetectionStrategy } from '@angular/core';
 
 export const MAX_TAG_LENGTH = 30;
 
@@ -6,6 +6,7 @@ export const MAX_TAG_LENGTH = 30;
 @Component({
   selector: 'app-tag-input',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `
     <div class="field">
       <label [for]="inputId()"><span>{{ label() }}</span></label>

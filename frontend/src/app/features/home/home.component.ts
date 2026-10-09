@@ -1,14 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { UploadModalComponent } from '../files/upload-modal.component';
 import { FileResponse } from '../../core/api/file.api';
 
 @Component({
-  selector: 'app-home',
-  standalone: true,
-  imports: [RouterLink, UploadModalComponent],
-  template: `
+    selector: 'app-home',
+    imports: [RouterLink, UploadModalComponent],
+    template: `
     <div class="landing gradient-coral">
       <header class="landing-header">
         <a class="logo" routerLink="/">DataShare</a>
@@ -65,7 +64,8 @@ import { FileResponse } from '../../core/api/file.api';
         (uploaded)="onUploaded($event)" />
     }
   `,
-  styles: [`
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styles: [`
     .landing {
       min-height: 100vh;
       display: flex;
@@ -99,7 +99,7 @@ import { FileResponse } from '../../core/api/file.api';
     @media (min-width: 720px) {
       h1 { font-size: 40px; }
     }
-  `],
+  `]
 })
 export class HomeComponent {
   protected readonly auth = inject(AuthService);

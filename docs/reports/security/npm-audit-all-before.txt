@@ -1,0 +1,6 @@
+npm audit (toutes dépendances, dev incluses) — Angular 18.2 — 2026-10-09
+
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force

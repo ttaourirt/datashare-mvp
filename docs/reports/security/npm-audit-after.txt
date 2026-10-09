@@ -1,0 +1,7 @@
+npm audit — Angular 22.2 + Vitest + Cypress 16 — 2026-10-09
+
+$ npm audit --omit=dev
+found 0 vulnerabilities
+
+$ npm audit
+found 0 vulnerabilities

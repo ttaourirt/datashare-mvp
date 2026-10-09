@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -6,10 +6,9 @@ import { FileApi, PublicFileMeta } from '../../core/api/file.api';
 import { formatBytes, saveBlob } from '../../shared/format';
 
 @Component({
-  selector: 'app-download',
-  standalone: true,
-  imports: [CommonModule, DatePipe, ReactiveFormsModule, RouterLink],
-  template: `
+    selector: 'app-download',
+    imports: [CommonModule, DatePipe, ReactiveFormsModule, RouterLink],
+    template: `
     <div class="dl-page gradient-coral">
       <header class="dl-header">
         <a class="logo" routerLink="/">DataShare</a>
@@ -64,7 +63,8 @@ import { formatBytes, saveBlob } from '../../shared/format';
       </footer>
     </div>
   `,
-  styles: [`
+    changeDetection: ChangeDetectionStrategy.Eager,
+    styles: [`
     .dl-page { min-height: 100vh; display: flex; flex-direction: column; }
     .dl-header { padding: 24px 32px; }
     .dl-body {
@@ -97,7 +97,7 @@ import { formatBytes, saveBlob } from '../../shared/format';
       border-radius: var(--r-sm);
     }
     .dl-footer { padding: 8px 32px 24px; }
-  `],
+  `]
 })
 export class DownloadComponent {
   private readonly route = inject(ActivatedRoute);
