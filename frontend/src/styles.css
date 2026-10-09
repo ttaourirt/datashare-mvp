@@ -4,7 +4,7 @@
 :root {
   /* Marque */
   --coral:        #DD7A6B;   /* switch actif */
-  --orange:       #E07A38;   /* texte des boutons / liens */
+  --orange:       #AD5016;   /* texte des boutons / liens — teinte Figma assombrie pour un contraste AA ≥ 4.5:1 */
   --orange-soft:  #FCEDE3;   /* fond bouton principal */
   --orange-line:  #F1BE9C;   /* bordure bouton principal */
 
@@ -24,7 +24,7 @@
   /* Texte */
   --text:         #1C1714;
   --text-mut:     #6E625B;
-  --text-faint:   #A79C95;
+  --text-faint:   #857A73;
 
   /* Bordures */
   --border:       #EFE3DB;
@@ -32,7 +32,7 @@
 
   /* États (callouts) */
   --info-bg:      #E6ECFD;  --info-line:    #BCCBF6;  --info-text:    #3456C8;
-  --warn-bg:      #FFF3EB;  --warn-line:    #F6CDB0;  --warn-text:    #C2561E;
+  --warn-bg:      #FFF3EB;  --warn-line:    #F6CDB0;  --warn-text:    #A64B14;
   --danger-bg:    #FDE6E6;  --danger-line:  #F2B8B8;  --danger-text:  #C23434;
   --success:      #2F7A55;
 
@@ -278,5 +278,5 @@ h1, h2 { margin: 0; }
 .field .tag-input input { flex: 1; min-width: 120px; height: 26px; border: none; padding: 0 4px; box-shadow: none; }
 
 .text-mut { color: var(--text-mut); }
-.copyright { font-size: 10px; color: rgba(28, 23, 20, 0.6); margin: 0; }
-.copyright--light { color: rgba(255, 233, 222, 0.9); }
+.copyright { font-size: 10px; color: var(--text); margin: 0; }
+.copyright--light { color: #1C1714; } /* sur le bas du dégradé : contraste ≥ 4.5:1 */

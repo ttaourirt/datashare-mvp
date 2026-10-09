@@ -92,6 +92,12 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Observabilité : /actuator/health, /actuator/metrics (PERF.md) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- OpenAPI / Swagger UI -->
         <dependency>
             <groupId>org.springdoc</groupId>

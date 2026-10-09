@@ -32,13 +32,18 @@
 9. **US03** — email invalide → 400
 10. **US04** — mauvais mot de passe → 401
 
-## Tests unitaires front
+## Tests unitaires front (37 tests, Vitest)
 
 | Fichier | Couvre |
 |---|---|
 | `auth.service.spec.ts` | US03 / US04 — inscription sans token, login, logout |
-| `upload-modal.component.spec.ts` | US01 / US07 / US09 / US10 — mot de passe ≥ 6, expiration ≤ 7 j, envoi des tags, endpoint anonyme |
+| `jwt.interceptor.spec.ts` | US04 — en-tête `Bearer`, aucun jeton en anonyme, déconnexion sur 401, guard des routes privées |
+| `login.component.spec.ts` | US04 — connexion puis redirection vers l'espace, message sur identifiants invalides |
+| `register.component.spec.ts` | US03 — email valide, mot de passe ≥ 8, confirmation identique, email déjà utilisé (409) |
+| `upload-modal.component.spec.ts` | US01 / US07 / US09 / US10 — mot de passe ≥ 6, expiration ≤ 7 j, fichier > 1 Go et extension refusés côté client, envoi des tags, endpoint anonyme, lien affiché après l'envoi |
+| `upload-rules.spec.ts` | US01 — règles partagées (taille, extensions, durée) |
 | `history.component.spec.ts` | US05 / US06 / US08 — non expirés par défaut, dates affichées, confirmation de suppression, filtre et édition des tags |
+| `download.component.spec.ts` | US02 — métadonnées avant téléchargement, encadrés « dans N jours » / « demain », mot de passe requis, liens expiré (410) et invalide (404) |
 | `tag-input.component.spec.ts` | US08 — doublons refusés, 30 caractères max, retrait d'un tag |
 
 ## Scénarios E2E (Cypress)
@@ -73,9 +78,25 @@ npm run e2e:run        # exécution headless (CI)
 Prérequis : Postgres, back-end (`:8080`) et front-end (`:4200`) démarrés.
 Depuis le terminal intégré de VS Code, lancer avec `env -u ELECTRON_RUN_AS_NODE npm run e2e:run`.
 
+## Résultats (2026-10-09)
+
+| Suite | Commande | Résultat |
+|---|---|---|
+| Back — unitaires + intégration (Testcontainers) | `cd backend && ./mvnw verify` | **25 / 25** ✅ |
+| Front — unitaires (Vitest) | `cd frontend && npm test -- --watch=false` | **37 / 37** ✅ |
+| E2E (Cypress 16) | `cd frontend && npm run e2e:run` | **3 / 3** scénarios ✅ |
+
 ## Rapport de couverture
 
-- **Back** : rapport HTML sous `backend/target/site/jacoco/index.html` (après `mvn verify`).
-- **Front** : rapport HTML sous `frontend/coverage/datashare/index.html` (après `npm test`).
+| Périmètre | Outil | Lignes | Instructions | Branches | Objectif 70 % |
+|---|---|---|---|---|---|
+| Back | JaCoCo | **91 %** (296/325) | **89 %** | 71 % | ✅ |
+| Front (tout `src/app`, pas seulement les fichiers testés) | Vitest + v8 | **81 %** (466/574) | **76 %** | 74 % | ✅ |
 
-Une capture d'écran de chaque rapport doit être annexée à la livraison finale.
+- **Back** : rapport HTML sous `backend/target/site/jacoco/index.html` (après `./mvnw verify`).
+- **Front** : rapport HTML sous `frontend/coverage/datashare/index.html` (après `npm test`).
+- Parties non couvertes assumées : CRUD `/api/v1/tags` (le front gère les tags par nom via `/files`), composants d'amorçage (`app.config`, routes) et page d'accueil, couverts par les tests E2E.
+
+![Couverture back — JaCoCo](docs/reports/coverage/backend-jacoco.png)
+
+![Couverture front — Vitest](docs/reports/coverage/frontend-vitest.png)

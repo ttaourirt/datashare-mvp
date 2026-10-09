@@ -8,6 +8,8 @@ import com.datashare.storage.FileStorageService;
 import com.datashare.tag.Tag;
 import com.datashare.tag.TagRepository;
 import com.datashare.user.User;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,17 +40,24 @@ public class FileService {
     private final FileStorageService storage;
     private final UploadPolicy uploadPolicy;
     private final PasswordEncoder passwordEncoder;
+    private final DistributionSummary uploadSizes;
 
     public FileService(FileRepository fileRepository,
                        TagRepository tagRepository,
                        FileStorageService storage,
                        UploadPolicy uploadPolicy,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       MeterRegistry meterRegistry) {
         this.fileRepository = fileRepository;
         this.tagRepository = tagRepository;
         this.storage = storage;
         this.uploadPolicy = uploadPolicy;
         this.passwordEncoder = passwordEncoder;
+        // PERF.md — suivi de la taille des fichiers envoyés
+        this.uploadSizes = DistributionSummary.builder("datashare.upload.size")
+                .baseUnit("bytes")
+                .description("Taille des fichiers envoyés")
+                .register(meterRegistry);
     }
 
     /**
@@ -82,7 +91,10 @@ public class FileService {
                 .tags(resolvedTags)
                 .build();
 
-        return fileRepository.save(entity);
+        FileEntity saved = fileRepository.save(entity);
+        uploadSizes.record(multipart.getSize());
+        log.info("Upload file id={} size={} bytes anonymous={}", saved.getId(), multipart.getSize(), owner == null);
+        return saved;
     }
 
     /** US05 — historique de l'utilisateur (par défaut : hors expirés). */

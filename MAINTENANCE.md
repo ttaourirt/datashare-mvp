@@ -8,8 +8,8 @@
 | **Minor** (x.**Y**.z) | Chaque sprint (2 semaines) | Revue manuelle du PR | Faible — nouveautés compatibles |
 | **Major** (**X**.y.z) | Trimestriel ou sur besoin | Ticket dédié + tests étendus | Élevé — breaking changes possibles |
 | **Java LTS** | Suivre les LTS (21 → 25) | Ticket dédié | Élevé — refonte config possible |
-| **Angular** | Suivre les LTS (18 → 20) | `ng update` + revue | Moyen — migrations guidées |
-| **Spring Boot** | Suivre les versions supportées | Migration guide + tests | Moyen |
+| **Angular** | Rester sur une version supportée (passé de 18 à 22 le 2026-10-09) | `ng update` une majeure à la fois + revue | Moyen — migrations guidées |
+| **Spring Boot** | Rester sur une version supportée (3.3 → 3.5.16 le 2026-10-09 ; Spring Boot 4 à planifier) | Migration guide + tests | Moyen (Élevé pour 3 → 4 : Jakarta/Spring 7) |
 
 ## Comment vérifier
 
@@ -18,7 +18,7 @@
 cd backend
 ./mvnw versions:display-dependency-updates      # nouvelles minor/major
 ./mvnw versions:display-plugin-updates
-./mvnw org.owasp:dependency-check-maven:check   # CVE
+osv-scanner scan source -r .                     # CVE (cf. SECURITY.md)
 ```
 
 ### Front
@@ -48,7 +48,7 @@ rsync -av storage/uploads/ backups/uploads-$(date +%F)/
 
 En prod : bucket S3 avec versioning activé (règle de vie 30 jours).
 
-## Procédure de déploiement (rolling)
+## Procédure de déploiement (cible — CI et images Docker pas encore en place)
 
 1. Merge sur `main` → CI verte
 2. GitHub Actions build les images Docker `backend:X.Y.Z` et `frontend:X.Y.Z`
@@ -64,9 +64,16 @@ En prod : bucket S3 avec versioning activé (règle de vie 30 jours).
 
 ## Monitoring
 
-- **Actuator** : `/actuator/health`, `/actuator/metrics`, `/actuator/prometheus` (à activer en prod).
+- **Actuator** (en place) : `/actuator/health` public, `/actuator/metrics` protégé par JWT. Métrique applicative `datashare.upload.size`. À ajouter : `/actuator/prometheus`.
 - **Uptime** : ping externe (UptimeRobot ou équivalent).
 - **Alertes** : à connecter à Slack / email (roadmap Prometheus + Alertmanager).
+
+## Rituel de mise à jour (mensuel, ~1 h)
+
+1. `osv-scanner scan source -r backend` et `cd frontend && npm audit` : comparer avec [`docs/reports/security/`](docs/reports/security/).
+2. Patches et mineures : mettre à jour, puis lancer `./mvnw verify`, `npm test -- --watch=false` et `npm run e2e:run`.
+3. Majeures (Angular, Spring Boot) : branche dédiée, une majeure à la fois, relancer aussi le test k6 (PERF.md) et Lighthouse.
+4. Mettre à jour SECURITY.md (résultats et décisions) et retirer les surcharges de versions du `pom.xml` devenues inutiles.
 
 ## Runbook incident
 

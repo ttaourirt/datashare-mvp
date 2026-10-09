@@ -47,6 +47,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/public/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                // /actuator/metrics reste protégé (JWT requis) : pas de fuite d'informations techniques
                 .anyRequest().authenticated()
             )
             // Sans token valide : 401 (et non 403), attendu par le jwt.interceptor du front

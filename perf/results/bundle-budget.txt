@@ -1,0 +1,22 @@
+ng build (configuration production, Angular 22) — 2026-10-09
+Budgets angular.json : initial warning 500 kB / error 1 MB ; style composant warning 4 kB
+
+Initial chunk files   | Names              |  Raw size | Estimated transfer size
+main-E54DBEI4.js      | main               | 294.29 kB |                80.09 kB
+polyfills-5CFQRCPP.js | polyfills          |  34.59 kB |                11.33 kB
+styles-PNJNCPBT.css   | styles             |   6.40 kB |                 1.87 kB
+                      | Initial total      | 335.27 kB |                93.30 kB
+Lazy chunk files      | Names              |  Raw size | Estimated transfer size
+chunk-BX5RVWwk.js     | -                  |  44.33 kB |                 9.62 kB
+chunk-2WQ5Bush.js     | history-component  |  11.47 kB |                 3.55 kB
+chunk-C3nvU5hM.js     | -                  |  10.83 kB |                 3.87 kB
+chunk-fcoTZ17p.js     | shell-component    |   6.30 kB |                 1.97 kB
+chunk-D93aFblu.js     | download-component |   4.59 kB |                 1.76 kB
+chunk-glPltwVo.js     | register-component |   4.43 kB |                 1.73 kB
+chunk-DckcDiEH.js     | login-component    |   3.21 kB |                 1.41 kB
+chunk-Xu5zAPIv.js     | -                  |   2.52 kB |                 1.06 kB
+chunk-CruPJ0Tc.js     | home-component     |   2.30 kB |                 1.05 kB
+chunk-BJfON_kG.js     | -                  |   1.53 kB |               700 bytes
+chunk-DFLI7JQ-.js     | -                  |   1.51 kB |               662 bytes
+Application bundle generation complete. [1.561 seconds] - 2026-10-09T12:11:56.798Z
+Output location: /Users/tofs/Projects/perso/datashare-mvp/frontend/dist/datashare

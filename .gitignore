@@ -4,7 +4,7 @@ dist/
 .angular/
 .vscode/
 *.tsbuildinfo
-coverage/
+frontend/coverage/
 frontend/cypress/videos/
 frontend/cypress/screenshots/
 frontend/cypress/downloads/
