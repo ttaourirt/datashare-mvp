@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#2B2B2B"/>
+    </marker>
+    <marker id="arrow-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#6E625B"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="720" fill="#FFFFFF"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#1C1714">DataShare — Architecture de l'application</text>
+
+  <!-- Client -->
+  <rect x="40" y="150" width="250" height="250" rx="10" fill="#FFF8F4" stroke="#D16D68" stroke-width="2"/>
+  <text x="165" y="178" font-size="14" font-weight="700" text-anchor="middle" fill="#1C1714">Navigateur (mobile / desktop)</text>
+  <rect x="65" y="200" width="200" height="120" rx="6" fill="#FCEDE3" stroke="#AD5016" stroke-width="1.5"/>
+  <text x="165" y="232" font-size="14" font-weight="700" text-anchor="middle" fill="#1C1714">Front-end</text>
+  <text x="165" y="254" font-size="12" text-anchor="middle" fill="#1C1714">SPA Angular 22 (TypeScript)</text>
+  <text x="165" y="274" font-size="11" text-anchor="middle" fill="#6E625B">validation côté client</text>
+  <text x="165" y="292" font-size="11" text-anchor="middle" fill="#6E625B">intercepteur JWT · guard</text>
+  <text x="165" y="350" font-size="11" text-anchor="middle" fill="#6E625B">JWT conservé en localStorage</text>
+  <text x="165" y="368" font-size="11" text-anchor="middle" fill="#6E625B">port 4200 en développement</text>
+
+  <!-- Serveur -->
+  <rect x="470" y="80" width="360" height="470" rx="10" fill="#F4F6FB" stroke="#3456C8" stroke-width="2"/>
+  <text x="650" y="108" font-size="14" font-weight="700" text-anchor="middle" fill="#1C1714">Back-end — Spring Boot 3.5 (Java 21)</text>
+  <text x="650" y="126" font-size="11" text-anchor="middle" fill="#6E625B">API REST /api/v1 · port 8080</text>
+
+  <g font-size="12" fill="#1C1714" text-anchor="middle">
+    <rect x="495" y="145" width="310" height="52" rx="6" fill="#E6ECFD" stroke="#3456C8"/>
+    <text x="650" y="167" font-weight="700">Spring Security — filtre JWT, CORS</text>
+    <text x="650" y="185" font-size="11" fill="#6E625B">401 sans jeton valide · BCrypt</text>
+
+    <rect x="495" y="215" width="310" height="52" rx="6" fill="#FFFFFF" stroke="#3456C8"/>
+    <text x="650" y="237" font-weight="700">Contrôleurs REST</text>
+    <text x="650" y="255" font-size="11" fill="#6E625B">Auth · Files · Public · Tags · validation des DTO</text>
+
+    <rect x="495" y="285" width="310" height="52" rx="6" fill="#FFFFFF" stroke="#3456C8"/>
+    <text x="650" y="307" font-weight="700">Services (règles de gestion)</text>
+    <text x="650" y="325" font-size="11" fill="#6E625B">UploadPolicy : 1 Go, extensions, 1 à 7 jours</text>
+
+    <rect x="495" y="365" width="145" height="52" rx="6" fill="#FFFFFF" stroke="#3456C8"/>
+    <text x="567" y="387" font-weight="700">Repositories JPA</text>
+    <text x="567" y="405" font-size="11" fill="#6E625B">Spring Data · Flyway</text>
+
+    <rect x="660" y="365" width="145" height="52" rx="6" fill="#FFFFFF" stroke="#3456C8"/>
+    <text x="732" y="387" font-weight="700">FileStorageService</text>
+    <text x="732" y="405" font-size="11" fill="#6E625B">stockage local (S3 possible)</text>
+
+    <rect x="495" y="465" width="310" height="52" rx="6" fill="#FFF3EB" stroke="#A64B14" stroke-dasharray="6 4"/>
+    <text x="650" y="487" font-weight="700">Tâche planifiée (@Scheduled)</text>
+    <text x="650" y="505" font-size="11" fill="#6E625B">purge des fichiers expirés, chaque jour à 3 h UTC</text>
+  </g>
+
+  <!-- flèches internes -->
+  <g stroke="#2B2B2B" stroke-width="1.5" fill="none" marker-end="url(#arrow)">
+    <line x1="650" y1="197" x2="650" y2="213"/>
+    <line x1="650" y1="267" x2="650" y2="283"/>
+    <line x1="600" y1="337" x2="570" y2="363"/>
+    <line x1="700" y1="337" x2="730" y2="363"/>
+  </g>
+  <line x1="650" y1="465" x2="650" y2="339" stroke="#6E625B" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow-grey)"/>
+
+  <!-- Base de données (cylindre) -->
+  <g>
+    <path d="M960 180 v90 a80 18 0 0 0 160 0 v-90" fill="#EAF6EF" stroke="#2F7A55" stroke-width="2"/>
+    <ellipse cx="1040" cy="180" rx="80" ry="18" fill="#EAF6EF" stroke="#2F7A55" stroke-width="2"/>
+    <text x="1040" y="222" font-size="14" font-weight="700" text-anchor="middle" fill="#1C1714">PostgreSQL 16</text>
+    <text x="1040" y="242" font-size="11" text-anchor="middle" fill="#6E625B">users · files</text>
+    <text x="1040" y="258" font-size="11" text-anchor="middle" fill="#6E625B">tags · file_tags</text>
+    <text x="1040" y="312" font-size="11" text-anchor="middle" fill="#6E625B">conteneur Docker</text>
+  </g>
+
+  <!-- Stockage (dossier) -->
+  <g>
+    <path d="M960 398 h60 l14 14 h86 v98 h-160 z" fill="#FFF8E6" stroke="#A67C00" stroke-width="2"/>
+    <text x="1040" y="446" font-size="14" font-weight="700" text-anchor="middle" fill="#1C1714">Système de fichiers</text>
+    <text x="1040" y="466" font-size="11" text-anchor="middle" fill="#6E625B">./storage/uploads</text>
+    <text x="1040" y="484" font-size="11" text-anchor="middle" fill="#6E625B">fichiers nommés par UUID</text>
+  </g>
+
+  <!-- flèches externes -->
+  <line x1="267" y1="240" x2="493" y2="180" stroke="#2B2B2B" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <g font-size="11" fill="#1C1714">
+    <rect x="299" y="88" width="162" height="64" rx="4" fill="#FFFFFF" stroke="#EFE3DB"/>
+    <text x="380" y="105" text-anchor="middle" font-weight="700">HTTPS — REST</text>
+    <text x="380" y="121" text-anchor="middle">JSON · multipart/form-data</text>
+    <text x="380" y="137" text-anchor="middle">Authorization: Bearer JWT</text>
+  </g>
+
+  <path d="M567 417 V 440 H 900 V 235 H 958" fill="none" stroke="#2B2B2B" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="1040" y="132" font-size="11" text-anchor="middle" fill="#1C1714" font-weight="700">JDBC (TCP 5432)</text>
+  <text x="1040" y="148" font-size="11" text-anchor="middle" fill="#1C1714">requêtes SQL paramétrées</text>
+
+  <path d="M805 400 H 870 V 460 H 958" fill="none" stroke="#2B2B2B" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <text x="1040" y="540" font-size="11" text-anchor="middle" fill="#1C1714" font-weight="700">Lecture / écriture en streaming</text>
+
+  <!-- Légende -->
+  <rect x="40" y="590" width="1120" height="100" rx="8" fill="#FAFAFA" stroke="#D9D9D9"/>
+  <text x="60" y="616" font-size="13" font-weight="700" fill="#1C1714">Légende</text>
+  <g font-size="12" fill="#1C1714">
+    <rect x="60" y="632" width="26" height="16" rx="3" fill="#FCEDE3" stroke="#AD5016"/><text x="96" y="645">Front-end</text>
+    <rect x="190" y="632" width="26" height="16" rx="3" fill="#F4F6FB" stroke="#3456C8"/><text x="226" y="645">Back-end</text>
+    <rect x="320" y="632" width="26" height="16" rx="3" fill="#EAF6EF" stroke="#2F7A55"/><text x="356" y="645">Base de données</text>
+    <rect x="490" y="632" width="26" height="16" rx="3" fill="#FFF8E6" stroke="#A67C00"/><text x="526" y="645">Stockage de fichiers</text>
+    <rect x="680" y="632" width="26" height="16" rx="3" fill="#FFF3EB" stroke="#A64B14" stroke-dasharray="4 3"/><text x="716" y="645">Traitement planifié</text>
+
+    <line x1="60" y1="670" x2="110" y2="670" stroke="#2B2B2B" stroke-width="2" marker-end="url(#arrow)"/><text x="120" y="674">Appel / flux de données</text>
+    <line x1="320" y1="670" x2="370" y2="670" stroke="#2B2B2B" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/><text x="380" y="674">Échange dans les deux sens</text>
+    <line x1="590" y1="670" x2="640" y2="670" stroke="#6E625B" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrow-grey)"/><text x="650" y="674">Déclenchement automatique (sans utilisateur)</text>
+    <text x="930" y="674" fill="#6E625B">Aucune API externe</text>
+  </g>
+</svg>

@@ -334,7 +334,7 @@ components:
         expiresAt: { type: string, format: date-time }
         passwordProtected: { type: boolean }
         expired: { type: boolean }
-        downloadUrl: { type: string, example: "/f/8f4a...uuid" }
+        downloadUrl: { type: string, example: "/d/8f4a...uuid", description: "Chemin de la page publique de téléchargement côté front" }
         tags:
           type: array
           items: { $ref: '#/components/schemas/TagResponse' }

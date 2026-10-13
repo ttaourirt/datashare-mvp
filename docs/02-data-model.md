@@ -5,6 +5,7 @@
 ```mermaid
 erDiagram
     USER ||--o{ FILE : "possède"
+    USER ||--o{ TAG : "crée"
     FILE ||--o{ FILE_TAG : "tagué par"
     TAG  ||--o{ FILE_TAG : "attache"
 
@@ -83,7 +84,7 @@ Index :
 | `owner_id` | BIGINT | FK users(id) ON DELETE CASCADE, NOT NULL |
 | `name` | VARCHAR(30) | NOT NULL |
 
-Contrainte : `UNIQUE(owner_id, LOWER(name))` — pas de doublon de tag chez un user.
+Contrainte : `UNIQUE(owner_id, name)` — pas de doublon de tag chez un utilisateur ; la comparaison sans tenir compte de la casse est faite par l'application (`findByOwnerAndNameIgnoreCase`).
 
 ### `file_tags`
 

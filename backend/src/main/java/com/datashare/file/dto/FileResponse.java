@@ -31,7 +31,7 @@ public record FileResponse(
                 f.getExpiresAt(),
                 f.isPasswordProtected(),
                 f.isExpired(),
-                "/f/" + f.getPublicToken(),
+                "/d/" + f.getPublicToken(),
                 f.getTags().stream().map(TagResponse::from).toList()
         );
     }
