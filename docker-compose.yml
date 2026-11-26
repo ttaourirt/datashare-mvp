@@ -1,3 +1,7 @@
+# En développement : `docker compose up -d` ne lance que PostgreSQL
+# (le back et le front tournent en local, voir le README).
+# Déploiement complet (base + back + front) : ./scripts/deploy.sh
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -5,17 +9,50 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: datashare
-      POSTGRES_USER: datashare
-      POSTGRES_PASSWORD: datashare
+      POSTGRES_USER: ${DB_USER:-datashare}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-datashare}
     ports:
       - "5432:5432"
     volumes:
       - datashare-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U datashare"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-datashare}"]
       interval: 5s
       timeout: 5s
       retries: 10
 
+  backend:
+    profiles: ["app"]
+    build: ./backend
+    container_name: datashare-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/datashare
+      DB_USER: ${DB_USER:-datashare}
+      DB_PASSWORD: ${DB_PASSWORD:-datashare}
+      # Lu dans .env (créé par scripts/deploy.sh). Vide = le back refuse de démarrer.
+      JWT_SECRET: ${JWT_SECRET:-}
+      STORAGE_ROOT: /app/storage/uploads
+    ports:
+      - "8080:8080"
+    volumes:
+      - datashare-uploads:/app/storage/uploads
+
+  frontend:
+    profiles: ["app"]
+    build: ./frontend
+    container_name: datashare-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+
 volumes:
   datashare-db-data:
+    name: datashare-db-data
+  datashare-uploads:
+    name: datashare-uploads
