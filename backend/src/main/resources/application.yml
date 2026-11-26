@@ -3,9 +3,9 @@ spring:
     name: datashare-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/datashare
-    username: datashare
-    password: datashare
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/datashare}
+    username: ${DB_USER:datashare}
+    password: ${DB_PASSWORD:datashare}
 
   jpa:
     hibernate:
@@ -38,7 +38,7 @@ datashare:
   storage:
     root: ${STORAGE_ROOT:./storage/uploads}
   cors:
-    allowed-origins: http://localhost:4200
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
 
 management:
   endpoints:

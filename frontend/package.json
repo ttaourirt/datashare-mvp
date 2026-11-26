@@ -7,8 +7,7 @@
     "build": "ng build",
     "test": "ng test --coverage",
     "e2e": "cypress open",
-    "e2e:run": "cypress run",
-    "lint": "ng lint"
+    "e2e:run": "cypress run"
   },
   "private": true,
   "dependencies": {

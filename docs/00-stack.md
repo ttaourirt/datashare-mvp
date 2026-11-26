@@ -8,18 +8,19 @@
 | Build back | Maven | 3.9.x |
 | Front-end | Angular | 22 (standalone components, signals) |
 | Base de données | PostgreSQL | 16 |
-| Migrations SQL | Flyway | 10.x |
+| Migrations SQL | Flyway | 11.x |
 | Auth | JWT (jjwt) | 0.12.x |
 | Stockage fichiers | Système de fichiers local (`./storage/uploads`) | — |
-| API doc | SpringDoc OpenAPI | 2.5.x → Swagger UI auto |
+| API doc | SpringDoc OpenAPI | 2.8.x → Swagger UI auto |
 | Tests back | JUnit 5 + Mockito + Testcontainers | — |
 | Tests front | Vitest (unit) + Cypress 16 (E2E) | — |
-| Infra dev | Docker Compose (Postgres) | — |
+| CI | GitHub Actions | — |
+| Déploiement | Docker Compose (PostgreSQL, back, front servi par Nginx) | — |
 
 ## Justifications
 
 ### Spring Boot + Java 21
-- Stack imposé par les spécifications.
+- Une des options proposées par les spécifications, la plus complète pour ce besoin (sécurité, accès BDD, supervision intégrés).
 - Java 21 LTS = support long, records, pattern matching, virtual threads.
 - Spring Boot 3.x = Jakarta EE 10, Native Image possible.
 - Écosystème mature : Spring Security (auth), Spring Data JPA (persistence), Actuator (monitoring).
@@ -44,12 +45,13 @@
 ### JWT
 - Imposé par les specs (US03/US04).
 - Stateless → scale horizontalement sans session sticky.
-- `jjwt` : lib Java de référence, HS256 signature, TTL configurable.
+- `jjwt` : lib Java de référence, signature HMAC-SHA (l'algorithme dépend de la longueur du secret), durée de vie configurable.
 
 ## Choix qualité
 
 - **Conventional Commits** (`feat:`, `fix:`, `chore:`, `docs:`, `test:`) → changelog auto possible.
-- **CI GitHub Actions** : build + tests à chaque push.
+- **CI GitHub Actions** (`.github/workflows/ci.yml`) : tests back et front + build de production à chaque push et pull request.
 - **Coverage** : JaCoCo (back), Vitest/v8 (front). Objectif 70 %.
-- **Lint** : Checkstyle (back), ESLint (front).
-- **k6** pour les tests de charge sur `/api/files/upload`.
+- **Lint** : pas de linter dédié pour l'instant. TypeScript est en mode strict (`strict`, `strictTemplates`) et le compilateur Java fait les contrôles de base. ESLint et Checkstyle sont à ajouter.
+- **k6** pour les tests de charge sur l'historique (`GET /api/v1/files`) et le téléchargement public (voir PERF.md).
+- **Docker** : un Dockerfile pour le back, un pour le front (Nginx), `docker-compose.yml` et `scripts/deploy.sh` pour tout lancer.

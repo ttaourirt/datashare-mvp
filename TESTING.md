@@ -11,7 +11,7 @@
 
 ## Critères d'acceptation
 
-- Tous les tests **passent en CI** avant merge sur `main`.
+- Les tests back et front **passent dans la CI** (GitHub Actions, à chaque push et pull request) avant de fusionner sur `main`. Les tests E2E se lancent en local avant une livraison, car ils ont besoin de la base, du back et du front.
 - **Couverture ≥ 70 %** (JaCoCo pour le back, couverture v8 de Vitest pour le front).
 - Chaque US du MVP possède au moins **un test unitaire** et **un test d'intégration ou E2E**.
 - Toute correction de bug est accompagnée d'un test qui échoue avant la correction.
@@ -73,7 +73,7 @@ open coverage/datashare/index.html
 ```bash
 cd frontend
 npm run e2e            # ouvre Cypress (mode interactif)
-npm run e2e:run        # exécution headless (CI)
+npm run e2e:run        # exécution headless
 ```
 Prérequis : Postgres, back-end (`:8080`) et front-end (`:4200`) démarrés.
 Depuis le terminal intégré de VS Code, lancer avec `env -u ELECTRON_RUN_AS_NODE npm run e2e:run`.
@@ -85,6 +85,8 @@ Depuis le terminal intégré de VS Code, lancer avec `env -u ELECTRON_RUN_AS_NOD
 | Back — unitaires + intégration (Testcontainers) | `cd backend && ./mvnw verify` | **25 / 25** ✅ |
 | Front — unitaires (Vitest) | `cd frontend && npm test -- --watch=false` | **37 / 37** ✅ |
 | E2E (Cypress 16) | `cd frontend && npm run e2e:run` | **3 / 3** scénarios ✅ |
+
+Relancés le 2026-11-26, après l'ajout de la CI et de Docker : **25 / 25** (back) et **37 / 37** (front), couverture des lignes 92 % (back) et 81 % (front). Les E2E n'ont pas été relancés ce jour-là ; le déploiement Docker a été vérifié par un parcours complet (inscription, envoi, téléchargement avec et sans mot de passe, suppression).
 
 ## Rapport de couverture
 
