@@ -55,7 +55,6 @@
             "coverageExclude": ["src/app/**/*.spec.ts"]
           }
         }
-        }
       }
     }
   },
