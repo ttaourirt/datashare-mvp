@@ -96,5 +96,7 @@ Le téléchargement public suit le chemin inverse : `GET /api/v1/public/files/{t
 
 ## Déploiement
 
-- En local : `docker compose up -d` (PostgreSQL), `./mvnw spring-boot:run`, `npm start` (voir le [README](../README.md)).
-- Cible (pas encore en place) : images Docker du back et du front (nginx), reverse proxy HTTPS, CI qui lance `./mvnw verify`, `npm test` et les tests E2E.
+- En développement : `./scripts/install.sh` (PostgreSQL dans Docker + dépendances), puis `./mvnw spring-boot:run` et `npm start` (voir le [README](../README.md)).
+- Avec Docker : `./scripts/deploy.sh` lance trois conteneurs : PostgreSQL, le back-end et le front-end servi par Nginx. Nginx relaie `/api` vers le back, donc le front et l'API ont la même origine (pas de CORS en production).
+- CI : GitHub Actions lance les tests back et front et le build de production à chaque push et pull request.
+- À venir : HTTPS devant Nginx (reverse proxy), registry d'images, environnement de staging.

@@ -4,7 +4,7 @@
 
 | Type | Fréquence | Outil | Risque |
 |---|---|---|---|
-| **Patches** (x.y.**Z**) | Automatique (Dependabot / Renovate hebdomadaire) | Dependabot | Faible — bugfixes et correctifs sécurité |
+| **Patches** (x.y.**Z**) | Chaque semaine | `npm outdated`, `./mvnw versions:display-dependency-updates` (Dependabot à activer) | Faible — bugfixes et correctifs sécurité |
 | **Minor** (x.**Y**.z) | Chaque sprint (2 semaines) | Revue manuelle du PR | Faible — nouveautés compatibles |
 | **Major** (**X**.y.z) | Trimestriel ou sur besoin | Ticket dédié + tests étendus | Élevé — breaking changes possibles |
 | **Java LTS** | Suivre les LTS (21 → 25) | Ticket dédié | Élevé — refonte config possible |
@@ -42,20 +42,21 @@ docker exec -i datashare-db psql -U datashare datashare < backups/dump-YYYY-MM-D
 
 ### Fichiers uploadés
 ```bash
-# Répertoire ./storage/uploads (dev) ou volume monté (prod)
+# Répertoire ./storage/uploads (dev) ou volume Docker datashare-uploads (déploiement)
 rsync -av storage/uploads/ backups/uploads-$(date +%F)/
 ```
 
 En prod : bucket S3 avec versioning activé (règle de vie 30 jours).
 
-## Procédure de déploiement (cible — CI et images Docker pas encore en place)
+## Procédure de déploiement
 
-1. Merge sur `main` → CI verte
-2. GitHub Actions build les images Docker `backend:X.Y.Z` et `frontend:X.Y.Z`
-3. Push sur registry
-4. Deploy sur env de staging → smoke tests (les scénarios E2E Cypress)
-5. Deploy prod → migration Flyway idempotente au démarrage
-6. Health check : `GET /actuator/health` doit retourner 200
+1. Pull request → la CI GitHub Actions doit être verte → merge sur `main`.
+2. Sur le serveur : `git pull` puis `./scripts/deploy.sh`. Le script crée `.env` la première fois (secret JWT aléatoire), construit les images du back et du front, puis démarre PostgreSQL, le back et Nginx.
+3. Au démarrage du back, Flyway applique les nouvelles migrations.
+4. Le script attend que `GET /actuator/health` réponde 200. On refait ensuite un parcours rapide : inscription, envoi, téléchargement.
+5. Retour arrière : redéployer la version précédente avec le même script. Attention, une migration Flyway déjà appliquée ne s'annule pas toute seule.
+
+À venir : images publiées dans un registry, environnement de staging, HTTPS devant Nginx.
 
 ## Logs
 
